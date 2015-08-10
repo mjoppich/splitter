@@ -20,6 +20,7 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 
 
 class LineProcessor
@@ -30,7 +31,16 @@ LineProcessor( std::string sFileName);
   void start(std::string& sLine, void* pData);
 
 private:
-      virtual process(std::string& sLine, void* pData );
+      virtual void process(std::string& sLine, void* pData );
+      
+  std::vector<std::string>* split(const std::string &sString, char cDelim, std::vector<std::string>* pElems) {
+      std::stringstream oStringStream(sString);
+      std::string sItem;
+      while (std::getline(oStringStream, sItem, cDelim)) {
+	  pElems.push_back(sItem);
+      }
+      return pElems;
+  }
 
   
   std::string m_sFileName;

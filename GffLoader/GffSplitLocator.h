@@ -18,10 +18,32 @@
 #ifndef GFFLOCATOR_H
 #define GFFLOCATOR_H
 
-class GffLocator
+#include "../Utils/LineProcessor.h"
+#include <string>
+#include <vector>
+
+class GffLocator : public LineProcessor
 {
 public:
-GffLocator();
+GffLocator(std::string sFileName)
+ : LineProcessor(sFileName)
+ {
+   m_pLineElements = new std::vector<std::string>();
+ }
+
+private:
+  
+void process(std::string& sLine, void* pData)
+{
+  this->split(sLine, '\t', m_pLineElements);
+  
+  
+  
+  m_pLineElements->clear();
+}
+
+  std::vector<std::string>* m_pLineElements;
+  
 };
 
 #endif // GFFLOCATOR_H
