@@ -64,15 +64,26 @@ public:
 
 		return pFeature;
 	}
-/*
-	void print(std::ostream* pStream)
+
+	void printFeatures(std::ostream& pStream)
 	{
-		std::ostream oStream = *pStream;
 
-		oStream << "Bla" << std::endl;
+                std::map<std::string, std::vector<SplitEvent*>* >::iterator oIt; 
+                for(oIt = m_pFeatures->begin(); oIt != m_pFeatures->end(); ++oIt)
+                {
+                    std::pair<std::string, std::vector<SplitEvent*>*> oPair = *oIt;
+                    std::string sEventType = oPair.first;
+                    pStream << sEventType << std::endl;
+                    
+                    for (uint32_t i = 0; i < oPair.second->size(); ++i)
+                    {
+                        SplitEvent* pSplit = oPair.second->at(i);
+                        pStream << pSplit->toString() << std::endl;
+                    }
 
+                }
 	}
-*/
+
 private:
 
 	std::map<std::string, std::vector<SplitEvent*>* >* m_pFeatures;

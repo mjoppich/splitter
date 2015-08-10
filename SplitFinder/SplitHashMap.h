@@ -10,9 +10,9 @@
 
 #include "../Utils/ThreadedHashMap.h"
 
-class Split;
+class SplitEvent;
 
-class SplitHashMap : public ThreadedHashMap<uint32_t, Split*>{
+class SplitHashMap : public ThreadedHashMap<uint32_t, SplitEvent*>{
 public:
 	SplitHashMap(uint32_t iBins)
 		: 	ThreadedHashMap(iBins)
@@ -20,7 +20,7 @@ public:
 
 	}
 
-	std::vector<Split*> *findElements(std::vector<Split*>* pLookIn, uint32_t oKey)
+	std::vector<SplitEvent*> *findElements(std::vector<SplitEvent*>* pLookIn, uint32_t oKey)
 	{
 		return NULL;
 	}
@@ -30,12 +30,12 @@ public:
 		return 0;
 	}
 
-	uint32_t getKeyForElement(Split* pSplit)
+	uint32_t getKeyForElement(SplitEvent* pSplit)
 	{
 		return 0;
 	}
 
-	Split* add(Split* pSplit)
+	SplitEvent* add(SplitEvent* pSplit)
 	{
 
 		uint32_t iKey = this->getKeyForElement(pSplit);

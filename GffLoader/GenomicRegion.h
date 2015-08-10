@@ -72,4 +72,4 @@ protected:
 };
 
 
-#endif GENOMICREGION_H_
+#endif /*GENOMICREGION_H_*/

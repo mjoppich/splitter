@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <vector>
 #include <fstream>
 
 GffLoader::GffLoader(	std::string sFileName, std::vector<std::string>* pIgnoreFeatures, std::string sPrefix) {
@@ -91,7 +92,6 @@ GffLoader::GffLoader(	std::string sFileName, std::vector<std::string>* pIgnoreFe
 		{
 			GffEntry* pGeneEntry = pGffEntries->at(i);
 		}
-
 		std::sort( pGffEntries->begin(), pGffEntries->end(), GffLoader::sSortEntriesAsc );
 
 	}

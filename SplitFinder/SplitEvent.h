@@ -12,6 +12,7 @@
 #include "../GffLoader/GffEntry.h"
 #include <htslib/sam.h>
 #include <vector>
+#include <sstream>
 
 
 class SplitEvent : public GenomicRegion {
@@ -51,6 +52,8 @@ public:
 	{
 		Entry* pNewEntry = new Entry();
 		pNewEntry->pReadName = new std::string( bam_get_qname(pRead) );
+                
+                m_pEntries->push_back(pNewEntry);
 	}
 
 	uint32_t getChromID()
@@ -67,6 +70,15 @@ public:
 	{
 		return m_pEntries;
 	}
+        
+        std::string toString()
+        {
+            std::ostringstream oStringStream;
+            
+            oStringStream << m_iChromID << " " << m_iStart << " " << m_iEnd << " " << m_pEntries->size();
+            
+            return oStringStream.str();
+        }
 
 private:
 

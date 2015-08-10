@@ -234,21 +234,46 @@ SplitEvent* XAMSplitStreamer::evaluateAlignment(bam_hdr_t* pHeader, uint32_t iSe
 	// if yes
 	// does there exist any transcript such that all positions on transcript?
 	bool bCoveredTranscript = false;
-
+        bool bReadFullyCovered = false;
+        
+        std::vector< GffTranscript* > * pFullTranscripts = new std::vector<GffTranscript*>();
+        std::vector< GffTranscript* > * pTranscripts = new std::vector<GffTranscript*>();
+                
 	for (uint32_t i = 0; i < pTouchedGenes->size(); ++i)
 	{
 		GffEntry* pGene = pTouchedGenes->at(i);
-
-		bool bFound = pGene->hasTranscript( &vPositions );
-
-		bCoveredTranscript |= bFound;
-
+                
+                std::vector<GffTranscript*>* pReturnTranscripts = pGene->hasTranscript( &vPositions, false );
+                
+                if (pReturnTranscripts->size() > 0)
+                {
+                    bReadFullyCovered |= true;
+                    pFullTranscripts->insert(pFullTranscripts->end(), pReturnTranscripts->begin(), pReturnTranscripts->end());
+                    break;
+                }
+                
+                delete pReturnTranscripts;
+                
+                // not fully covered!
+                pReturnTranscripts = pGene->hasTranscript( &vPositions, true );
+                
+                if (pReturnTranscripts->size() > 0)
+                    pTranscripts->insert(pTranscripts->end(), pReturnTranscripts->begin(), pReturnTranscripts->end());
+                
+                delete pReturnTranscripts;
 	}
-
+        
 	// if yes -> all ok
 	// one might have a split, but everything is explained by a single transcript
-	if (bCoveredTranscript)
+	if (bReadFullyCovered)
+        {
+            delete pTranscripts;
+            delete pFullTranscripts;
+            
+            std::cout << std::endl << std::endl << "Valid Transcript" << std::endl << std::endl;
+            
 		return NULL;
+        } 
 
 	//if no either intron retention or split
 
@@ -257,6 +282,7 @@ SplitEvent* XAMSplitStreamer::evaluateAlignment(bam_hdr_t* pHeader, uint32_t iSe
 	// 2) exists position such that anything before in gene, but then intergenic -> IRI
 	// 2a) if N on CIGAR before leaving gene: SPI
 
+            std::cout << std::endl << std::endl << "Non Valid Transcript" << std::endl << std::endl;
 
 }
 
@@ -279,13 +305,18 @@ FeatureManager* XAMSplitStreamer::process(uint32_t iSeqID, GffEntry* pChromosome
 		delete m_pFeatures;
 
 	m_pFeatures = new FeatureManager();
+        uint32_t iReads = 0;
 
 	while (bam_itr_next(pInFile, potherit, pRes) > 0)
 	{
 
 		this->evaluateAlignment(pHeader, iSeqID, pRes, pChromosomeEntry);
-
+                ++iReads;
 	}
+        
+        
+        std::cout << "Reads processed: " << iReads << std::endl;
+        m_pFeatures->printFeatures( std::cout );
 
 	hts_itr_t* pIt = sam_itr_queryi(NULL, HTS_IDX_REST, 0, 0);
 

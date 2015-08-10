@@ -495,13 +495,12 @@ void GffEntry::flatten(std::string* pFlattenLevel)
 	{
 
 		GffEntry* pElem = *oIt;
-		std::string* pTID = pElem->getAttribute("transcript-id");
+		std::string* pTID = pElem->getAttribute("transcript_id");
 
 		if (pTID == NULL )
 			continue;
 
-		GffTranscript* pTranscript = new GffTranscript( *pTID, pElem->getStart(), pElem->getEnd() );
-
+                GffTranscript* pTranscript = new GffTranscript( *pTID, pElem->getStart(), pElem->getEnd() );
 
 		std::vector<GffEntry*>::iterator oJt;
 		for ( oJt = pElem->getChildren()->begin(); oJt != pElem->getChildren()->end(); ++oJt)
@@ -509,7 +508,14 @@ void GffEntry::flatten(std::string* pFlattenLevel)
 
 			GffEntry* pElem = *oJt;
 
+                        
 			std::vector<GffEntry*>* pExons = this->find(pRegions, pElem->getStart(), pElem->getEnd());
+                        
+                        if (pExons->size() != 1)
+                        {
+                            std::cerr << "Problem with Transcript ID: " << *pTID << std::endl;
+                        }
+                        
 
 			for (uint32_t i = 0; i < pExons->size(); ++i)
 			{
@@ -518,10 +524,18 @@ void GffEntry::flatten(std::string* pFlattenLevel)
 			}
 
 			pTranscript->addExons( pExons );
-
+                        
 		}
+                
+                pTranscripts->push_back(pTranscript);
+
 
 	}
+        
+        if ((pRegions->size() == 0) || (pTranscripts->size() == 0))
+        {
+            std::cout << "problem " << pRegions->size() << " " << pTranscripts->size() << std::endl;
+        }
 
 	m_pRegions = pRegions;
 	m_pTranscripts = pTranscripts;
