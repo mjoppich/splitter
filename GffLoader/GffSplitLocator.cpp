@@ -15,9 +15,4 @@
  * 
  */
 
-#include "../GffLoader/GffLocator.h"
-
-GffLocator::GffLocator()
-{
-
-}
+#include "../GffLoader/GffSplitLocator.h"

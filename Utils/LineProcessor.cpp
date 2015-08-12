@@ -15,6 +15,8 @@
  * 
  */
 
+#include <string>
+#include <fstream>
 #include "../Utils/LineProcessor.h"
 
 LineProcessor::LineProcessor(std::string sFileName)
@@ -22,11 +24,12 @@ LineProcessor::LineProcessor(std::string sFileName)
 
   m_sFileName = sFileName;
   
-  m_pInFile = new std::ifstream( sFileName );
+  m_pInFile = new std::ifstream();
+  m_pInFile->open( sFileName.c_str() );
   
 }
 
-void LineProcessor::start(std::string& sLine, void* pData)
+void LineProcessor::start(void* pData)
 {
   
   std::string sLine;

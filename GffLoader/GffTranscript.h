@@ -15,55 +15,45 @@
 #include "GenomicRegion.h"
 
 class GffEntry;
-class GffTranscript : public GenomicRegion
-{
+
+class GffTranscript : public GenomicRegion {
 public:
-	GffTranscript(std::string sTransID, uint32_t iStart, uint32_t iEnd)
-		: GenomicRegion(iStart, iEnd)
-	{
-		m_pTranscriptID = new std::string(sTransID);
 
-		m_pExons = new std::vector<GffEntry*>();
-	}
+    GffTranscript(std::string sTransID, uint32_t iStart, uint32_t iEnd)
+    : GenomicRegion(iStart, iEnd) {
+        m_pTranscriptID = new std::string(sTransID);
 
-	void addExons(std::vector<GffEntry*>* pExons)
-	{
-		if (pExons == NULL)
-			return;
+        m_pExons = new std::vector<GffEntry*>();
+    }
 
-		m_pExons->insert(m_pExons->end(), pExons->begin(), pExons->end());
-	}
+    void addExons(std::vector<GffEntry*>* pExons) {
+        if (pExons == NULL)
+            return;
 
-	void addExon(GffEntry* pExon)
-	{
-		if (pExon == NULL)
-			return;
+        m_pExons->insert(m_pExons->end(), pExons->begin(), pExons->end());
+    }
 
-		m_pExons->push_back(pExon);
-	}
+    void addExon(GffEntry* pExon) {
+        if (pExon == NULL)
+            return;
 
-	std::vector<GffEntry*>* getExons()
-	{
-		return m_pExons;
-	}
+        m_pExons->push_back(pExon);
+    }
 
-	uint32_t getStart()
-	{
-		return m_iStart;
-	}
-
-	uint32_t getEnd()
-		{
-			return m_iEnd;
-		}
+    std::vector<GffEntry*>* getExons() {
+        return m_pExons;
+    }
+    
+    std::string* getTranscriptID()
+    {
+        return m_pTranscriptID;
+    }
 
 private:
 
-	std::vector<GffEntry*>* m_pExons;
+    std::vector<GffEntry*>* m_pExons;
 
-	std::string* m_pTranscriptID;
-	uint32_t m_iStart;
-	uint32_t m_iEnd;
+    std::string* m_pTranscriptID;
 
 };
 

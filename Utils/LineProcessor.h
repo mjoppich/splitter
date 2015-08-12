@@ -21,30 +21,29 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sstream>
 
-
-class LineProcessor
-{
+class LineProcessor {
 public:
-LineProcessor( std::string sFileName);
+    LineProcessor(std::string sFileName);
 
-  void start(std::string& sLine, void* pData);
+    void start(void* pData);
 
-private:
-      virtual void process(std::string& sLine, void* pData );
-      
-  std::vector<std::string>* split(const std::string &sString, char cDelim, std::vector<std::string>* pElems) {
-      std::stringstream oStringStream(sString);
-      std::string sItem;
-      while (std::getline(oStringStream, sItem, cDelim)) {
-	  pElems.push_back(sItem);
-      }
-      return pElems;
-  }
+protected:
+    virtual void process(std::string& sLine, void* pData) = 0;
 
-  
-  std::string m_sFileName;
-  std::ifstream m_pInFile;
+    std::vector<std::string>* split(const std::string &sString, char cDelim, std::vector<std::string>* pElems) {
+        std::stringstream oStringStream(sString);
+        std::string sItem;
+        while (std::getline(oStringStream, sItem, cDelim)) {
+            pElems->push_back(sItem);
+        }
+        return pElems;
+    }
+
+
+    std::string m_sFileName;
+    std::ifstream* m_pInFile;
 };
 
 #endif // LINEPROCESSOR_H

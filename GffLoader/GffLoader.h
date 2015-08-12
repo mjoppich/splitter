@@ -16,21 +16,23 @@
 class GffLoader {
 public:
 	GffLoader(
-			std::string sFileName,
+			std::string& sFileName,
 			std::vector<std::string>* pIgnoreFeatures,
-			std::string sPrefix = ""
+			std::string* pPrefix = new std::string("")
 	);
 	virtual ~GffLoader();
 
 	std::vector<GffEntry*>* getEntriesForSeqName(std::string* pSeqName);
 
-
+        GffEntry* getChromosome(std::string* pSeqName);
 	std::vector<std::string>* getSeqNames();
 
 
 protected:
 
 	std::map<std::string, std::vector<GffEntry*>* >* pSortedGffEntries;
+        std::vector<std::string>* m_pChromosomeNames;
+        std::vector<GffEntry*>* m_pChromosomes;
 
 private:
 

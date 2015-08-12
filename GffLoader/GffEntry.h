@@ -182,7 +182,7 @@ public:
 
                 GffEntry* pChild = m_pChildren->at(i);
 
-                std::vector<GffEntry*>* pChildResults = pChild->findLevels(pPositions, pLevel);
+                std::vector<GffEntry*>* pChildResults = pChild->findLevels(pPositions, pLevel, bPartialContainment);
 
                 if (pChildResults != NULL) {
                     pLevelContained->insert(pLevelContained->end(), pChildResults->begin(), pChildResults->end());
@@ -217,9 +217,7 @@ public:
 
         }
 
-        delete pLevelContained;
-
-        return NULL;
+        return pLevelContained;
 
     }
 
@@ -232,7 +230,7 @@ public:
 
             GffEntry* pElem = *oIt;
 
-            if ((iStart >= pElem->getStart()) && (iEnd <= pElem->getEnd())) {
+            if ((iStart >= pElem->getStart()) && ( pElem->getEnd() <= iEnd)) {
                 pReturn->push_back(pElem);
             }
 
@@ -246,20 +244,10 @@ public:
         return pReturn;
 
     }
-
-    std::vector<GffEntry*>* split(uint32_t iPosition) {
-        if ((iPosition <= m_iStart) || (iPosition >= m_iEnd))
-            return 0;
-
-        std::vector<GffEntry*>* pNewRegions = new std::vector<GffEntry*>();
-
-        GffEntry* pRegion1 = new GffEntry(*this->getSeqName(), *this->getSource(), "region", m_iStart, iPosition);
-        GffEntry* pRegion2 = new GffEntry(*this->getSeqName(), *this->getSource(), "region", iPosition + 1, m_iEnd);
-
-        pNewRegions->push_back(pRegion1);
-        pNewRegions->push_back(pRegion2);
-
-        return pNewRegions;
+    
+    GffEntry* getRegion(uint32_t iStart, uint32_t iEnd)
+    {
+        return new GffEntry(*this->getSeqName(), *this->getSource(), "region", iStart, iEnd);
     }
 
     int32_t compare(GffEntry* pOtherEntry) {
@@ -317,6 +305,24 @@ public:
         m_pChildren->push_back(pCandidate);
 
         return this;
+
+    } 
+    
+    uint32_t getMaxLocation() {
+
+        uint32_t iMax = this->getEnd();
+        
+        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+        for (; oIt < m_pChildren->end(); ++oIt) {
+            GffEntry* pChild = (*oIt);
+
+            if (pChild->getEnd() > iMax)
+                iMax = pChild->getEnd();
+
+        }
+
+        return iMax;
 
     }
 

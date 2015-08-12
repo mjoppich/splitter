@@ -11,15 +11,17 @@ if (OPENMP_FOUND)
 endif()
 
 file(GLOB splitter_SRC
+    "Utils/*.h"
+    "Utils/*.cpp"
     "GffLoader/*.h"
     "GffLoader/*.cpp"
     "SplitFinder/*.h"
     "SplitFinder/*.cpp"
-    "Utils/*.h"
-    "Utils/*.cpp"
     "src/*.h"
     "src/*.cpp"
 )
+
+set(CMAKE_CXX_STANDARD 11)
 
 add_executable(splitter ${splitter_SRC})
 

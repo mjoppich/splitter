@@ -17,6 +17,7 @@
 #include "../GffLoader/GffLoader.h"
 #include "../SplitFinder/XAMSplitStreamer.h"
 #include "../SplitFinder/FeatureManager.h"
+#include "../GffLoader/GffSplitLocator.h"
 
 void printArray(double* pArray, int l)
 {
@@ -112,33 +113,58 @@ int main(int argc, char** argv) {
 	pIgnores->push_back("CDS");
 
 
-	std::string sGFFfile;
+	std::string sGFFFile;
+        std::string sSplitInfoFile;
+        std::string sSplitInfoOutFile;
+        
+        if (argc != 4)
+        {
+            std::cerr << "You need to specify gene annotation and input/output splitinfo!" << std::endl;
+            std::cerr << "call: splitter mygenome.gff star.splitinfo star.geneinfo" << std::endl;
+            std::cerr << "You submitted " << argc << " arguments: " << std::endl;
+            
+            for (uint32_t i = 0; i < argc; ++i)
+            {
+                std::cerr << argv[i] << std::endl;
+            }
+        }
 
-	if (argc > 1)
+	if (argc == 4)
 	{
-		sGFFfile = std::string(argv[1]);
+		sGFFFile = std::string(argv[1]);
+                sSplitInfoFile = std::string(argv[2]);
+		sSplitInfoOutFile = std::string(argv[3]);
+
+                
 	} else {
-		sGFFfile = "/home/markus/references/Saccharomyces_cerevisiae.R64-1-1.80.gtf";
+		sGFFFile = std::string("/home/markus/references/Saccharomyces_cerevisiae.R64-1-1.80.gtf");
+                sGFFFile = std::string("/usr/local/storage/references/Saccharomyces_cerevisiae.R64-1-1.80.gtf");
+                
+                sSplitInfoFile = "/usr/local/storage2/snyder/DNA_damage/100812_SPADE_FC62757_L3_pf/tophat.splitinfo2";
+                sSplitInfoOutFile = "/usr/local/storage2/snyder/DNA_damage/100812_SPADE_FC62757_L3_pf/tophat.genesplit";
+                
 		//sGFFfile = "/usr/local/storage/references/Homo_sapiens.GRCh38.81.gtf";
 	}
 
-	GffLoader* pLoader = new GffLoader(sGFFfile, pIgnores, "");
-
-	delete pIgnores; // ce5.sorted.bam ce5.sorted.bam.bai
-
-	XAMSplitStreamer* pStreamer = new XAMSplitStreamer(sBAMFile, sBAMidxFile);
+	GffLoader* pLoader = new GffLoader(sGFFFile, pIgnores);
+	delete pIgnores;
 
 	std::vector< std::pair< std::string, std::string > >* pExpandVector = new std::vector< std::pair< std::string, std::string > >();
-
 	pExpandVector->push_back( std::pair< std::string, std::string >("transcript", "intron") );
 	pExpandVector->push_back( std::pair< std::string, std::string >("gene", "intertrans") );
 	pExpandVector->push_back( std::pair< std::string, std::string >("chromosome", "intergenic") );
 
+        GffSplitLocator* pSplitLocator = new GffSplitLocator( sSplitInfoFile, sSplitInfoOutFile, pLoader );
+        
+        pSplitLocator->start(NULL);
+        delete pSplitLocator;
+        return 0;
+        
 
 	std::vector<std::string>* pAvailSeqNames = pLoader->getSeqNames();
-
-	pStreamer->printSeqNames();
-
+	XAMSplitStreamer* pStreamer = new XAMSplitStreamer(sBAMFile, sBAMidxFile);
+        pStreamer->printSeqNames();
+        
 	std::string* pFlattenLevel = new std::string( "gene" );
 
 	for (size_t i = 0; i < 1; ++i) // pAvailSeqNames->size()
@@ -155,14 +181,8 @@ int main(int argc, char** argv) {
 			continue;
 		}
 
-		std::vector<GffEntry*>* pGffEntries = pLoader->getEntriesForSeqName(&sSeqName);
-
-		GffEntry* pChromosome = new GffEntry( sSeqName, "splitter", "chromosome", 1, iSeqLength );
-		pChromosome->addChildren( pGffEntries );
-		pChromosome->sortChildren( NULL );
-
-		pChromosome->getChildren()->size();
-
+		GffEntry* pChromosome = pLoader->getChromosome( &sSeqName );
+                
 		std::cout << *(pChromosome->getFeature()) << " " << *pFlattenLevel << " " << pChromosome->getChildren()->size() << pChromosome->getLength() << std::endl;
 
 		pChromosome->flatten( pFlattenLevel );

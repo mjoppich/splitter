@@ -12,12 +12,16 @@
 #include <vector>
 #include <fstream>
 
-GffLoader::GffLoader(	std::string sFileName, std::vector<std::string>* pIgnoreFeatures, std::string sPrefix) {
+GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFeatures, std::string* pPrefix) {
 
 	std::ifstream oInputStream;
 	std::string sLine;
 
 	pSortedGffEntries = new std::map<std::string, std::vector<GffEntry*>* >();
+        m_pChromosomeNames = new std::vector<std::string>();
+        m_pChromosomes = new std::vector<GffEntry*>();
+        
+        
 	std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
 
 	std::vector<GffEntry*>* pCurrentTranscript = NULL;
@@ -40,8 +44,11 @@ GffLoader::GffLoader(	std::string sFileName, std::vector<std::string>* pIgnoreFe
 
 		if (pSeqName == NULL)
 			continue;
+                
+                if ( std::find(m_pChromosomeNames->begin(), m_pChromosomeNames->end() , *pSeqName) == m_pChromosomeNames->end() )
+                    m_pChromosomeNames->push_back( *pSeqName );
 
-		std::string* pPrefixedSeqName = new std::string(sPrefix.c_str());
+		std::string* pPrefixedSeqName = new std::string(pPrefix->c_str());
 		pPrefixedSeqName->append(pSeqName->c_str());
 		pEntry->setSeqName(pPrefixedSeqName);
 		pSeqName = pEntry->getSeqName();
@@ -95,6 +102,34 @@ GffLoader::GffLoader(	std::string sFileName, std::vector<std::string>* pIgnoreFe
 		std::sort( pGffEntries->begin(), pGffEntries->end(), GffLoader::sSortEntriesAsc );
 
 	}
+        
+        std::string* pFlattenLevel = new std::string("gene");
+        
+        std::vector<std::string>::iterator oJt;
+        for ( oJt = m_pChromosomeNames->begin(); oJt != m_pChromosomeNames->end(); ++oJt )
+        {
+            std::string sChromName = *oJt;
+            
+            std::vector<GffEntry*>* pGffEntries = this->getEntriesForSeqName(&sChromName);
+
+            GffEntry* pChromosome = new GffEntry( sChromName, "splitter", "chromosome", 1, 1 );
+            pChromosome->addChildren( pGffEntries );
+            pChromosome->sortChildren( NULL );
+            
+            uint32_t iEnd = pChromosome->getMaxLocation();
+            pChromosome->setEnd(iEnd);
+            
+            pChromosome->flatten( pFlattenLevel );
+
+            
+            m_pChromosomes->push_back( pChromosome );
+            
+        }
+        
+        delete pFlattenLevel;
+        
+        
+		
 
 }
 
@@ -126,6 +161,22 @@ std::vector<GffEntry*>* GffLoader::getEntriesForSeqName(std::string* pSeqName)
 		return NULL;
 
 	return oIt->second;
+
+}
+
+GffEntry* GffLoader::getChromosome(std::string* pSeqName)
+{
+    std::vector< GffEntry* > ::iterator oIt; 
+	for (oIt = m_pChromosomes->begin(); oIt != m_pChromosomes->end(); ++oIt)
+	{
+            GffEntry* pChrom = *oIt;
+            
+            if (pChrom->getSeqName()->compare( *pSeqName ) == 0)
+                return pChrom;
+
+	}
+
+	return NULL;
 
 }
 
