@@ -12,6 +12,8 @@
 #include <iostream>
 #include <limits>
 
+#include "GffTranscript.h"
+
 #include "../Utils/Utils.h"
 
 /*
@@ -392,58 +394,55 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
         return;
     }
 
-    GffEntry* pAllRegions = new GffEntry(*this->getSeqName(), *this->getSource(), "region", this->getStart(), this->getEnd());
     std::vector<GffEntry*>* pRegions = new std::vector<GffEntry*>();
-    pRegions->push_back(pAllRegions);
 
 
+    std::vector<uint32_t> vExonBounds;
+
+    vExonBounds.push_back(this->getStart());
+    vExonBounds.push_back(this->getEnd() + 1);
     for (uint32_t i = 0; i < m_pChildren->size(); ++i) {
 
-        GffEntry* pElement = m_pChildren->at(i);
+        GffEntry* pTranscript = m_pChildren->at(i);
+        std::vector<GffEntry*>* pExons = pTranscript->getChildren();
 
-        std::vector<GffEntry*>::iterator oIt = pRegions->begin();
-        for (; oIt != pRegions->end(); ++oIt) {
+        GffEntry* pLastExon;
 
-            GffEntry* pRegion = *oIt;
-            ;
+        for (uint32_t i = 0; i < pExons->size(); ++i) {
 
-            std::vector<GffEntry*>* pNewRegions = pRegion->split(pElement->getStart());
+            GffEntry* pExon = pExons->at(i);
+            pLastExon = pExon;
 
-            // problem: if split needed, end must also be split
-
-            if (pNewRegions != NULL) {
-                std::vector<GffEntry*>::iterator oJt = pNewRegions->begin();
-                for (; oJt != pNewRegions->end(); ++oJt) {
-
-                    GffEntry* pNewElement = *oJt;
-
-                    std::vector<GffEntry*>* pDoubleSplit = pNewElement->split(pElement->getEnd());
-
-                    if (pDoubleSplit != NULL) {
-                        pNewRegions->erase(oJt);
-                        pNewRegions->insert(pNewRegions->end(), pDoubleSplit->begin(), pDoubleSplit->end());
-                        break;
-                    }
-                }
-
-            } else {
-
-                pNewRegions = pRegion->split(pElement->getEnd());
-
-            }
-
-            // pnewregions is null!!
-
-            if (pNewRegions != NULL) {
-                pRegions->erase(oIt);
-                pRegions->insert(pRegions->end(), pNewRegions->begin(), pNewRegions->end());
-            }
+            vExonBounds.push_back(pExon->getStart());
+            vExonBounds.push_back(pExon->getEnd() + 1);
 
         }
 
     }
 
-    std::sort(pRegions->begin(), pRegions->end(), GffEntry::sSortEntriesAsc);
+    std::sort(vExonBounds.begin(), vExonBounds.end());
+    // deletes duplicates
+    vExonBounds.erase(std::unique(vExonBounds.begin(), vExonBounds.end()), vExonBounds.end());
+
+
+//    std::cout << "THIS: " << this->getStart() << " " << this->getEnd() << " " << this->getLength() << std::endl;
+    uint32_t i;
+    for (i = 0; i < vExonBounds.size() - 1; ++i) {
+        if (this->getStart() > vExonBounds.at(i))
+            continue;
+
+        if (this->getEnd() <= vExonBounds.at(i + 1) - 1)
+            break;
+
+        GffEntry* pRegion = new GffEntry(*(this->m_pSeqName), *(this->m_pSource), "region", vExonBounds.at(i), vExonBounds.at(i + 1) - 1);
+        pRegions->push_back(pRegion);
+        //std::cout << pRegion->toString() << std::endl;
+
+    }
+
+    GffEntry* pRegion = new GffEntry(*(this->m_pSeqName), *(this->m_pSource), "region", vExonBounds.at(i), vExonBounds.at(i + 1) - 1);
+    pRegions->push_back(pRegion);
+    //std::cout << pRegion->toString() << std::endl;
 
     std::vector<GffTranscript*>* pTranscripts = new std::vector<GffTranscript*>();
 
@@ -494,3 +493,31 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
 
 }
 
+std::vector<GffTranscript*>* GffEntry::hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment) {
+
+        std::vector<GffTranscript*>* pReturn = new std::vector<GffTranscript*>();
+
+        bool bPartiallyContained = false;
+        bool bFullyContained = false;
+
+        for (uint32_t i = 0; i < m_pTranscripts->size(); ++i) {
+            GffTranscript* pTranscript = m_pTranscripts->at(i);
+
+            for (uint32_t i = 0; i < pPositions->size(); ++i) {
+
+                bool bContained = pTranscript->contains(pPositions->at(i));
+
+                bPartiallyContained |= bContained;
+                bFullyContained &= bContained;
+
+            }
+            bool bAdd = (bHasPartialContainment == true) ? bPartiallyContained : bFullyContained;
+
+            if (bAdd)
+                pReturn->push_back(pTranscript);
+
+        }
+
+        return pReturn;
+
+    }

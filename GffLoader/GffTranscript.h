@@ -48,6 +48,8 @@ public:
     {
         return m_pTranscriptID;
     }
+    
+    bool hasSplit(uint32_t iStart, uint32_t iEnd, uint32_t iConfInterval = 0);
 
 private:
 

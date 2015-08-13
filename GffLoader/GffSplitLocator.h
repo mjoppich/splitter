@@ -20,6 +20,8 @@
 
 #include "../Utils/LineProcessor.h"
 #include "../Utils/FileWriter.h"
+#include "GffEntry.h"
+#include "GffTranscript.h"
 #include "GffLoader.h"
 #include <string>
 #include <vector>
@@ -74,13 +76,14 @@ private:
         
         std::vector<GffEntry*>::iterator oIt;
         std::vector<GffTranscript*>* pAllTranscripts = new std::vector<GffTranscript*>();
+        std::vector<GffTranscript*>* pSplicedTranscripts = new std::vector<GffTranscript*>();
         
         for (oIt = pGenes->begin(); oIt != pGenes->end(); ++oIt)
         {
             
             GffEntry* pGene = *oIt;
             
-            bool bCoveredTranscript = pGene->hasTranscript(&vPos);
+            bool bCoveredTranscript = pGene->hasTranscript(&vPos, false);
             
             if (bCoveredTranscript)
                 ++iCoveredTranscripts;
@@ -92,12 +95,27 @@ private:
                 ++iTranscripts;
                 
                 pAllTranscripts->insert(pAllTranscripts->end(), pTranscripts->begin(), pTranscripts->end());
-            }
-            
+                
+                std::vector<GffTranscript*>::iterator oTr = pTranscripts->begin();
+                bool bSplitFound = false;
+                for (oTr; oTr != pTranscripts->end(); ++oTr)
+                {
+                    
+                    GffTranscript* pTrans = *oTr;
+                    
+                    bSplitFound |= pTrans->hasSplit(iStart, iEnd, 1);
+                    
+                    if (bSplitFound)
+                    {                      
+                        pSplicedTranscripts->push_back(pTrans);
+                    }
+                    
+                }    
+            }       
         }
         
         std::stringstream oOutLine; // get rid of endline
-        oOutLine << sLine.substr(0, sLine.length()-1) << '\t' << pGenes->size() << '\t' << iCoveredTranscripts << '\t' << iTranscripts << '\t';
+        oOutLine << sLine.substr(0, sLine.length()-1) << '\t' << pGenes->size() << '\t' << iCoveredTranscripts << '\t' << iTranscripts << '\t' << pSplicedTranscripts->size() << '\t';
         
         for (uint32_t i = 0; i < pGenes->size(); ++i)
         {
@@ -128,6 +146,23 @@ private:
         if (pAllTranscripts->size() == 0)
             oOutLine << "";
         
+        oOutLine << '\t';
+        
+        for (uint32_t i = 0; i < pSplicedTranscripts->size(); ++i)
+        {
+            
+            if (i > 0)
+                oOutLine << ",";
+            
+            GffTranscript* pTrans = pSplicedTranscripts->at(i);
+            
+            oOutLine << *pTrans->getTranscriptID();
+            
+        }
+        
+        if (pSplicedTranscripts->size() == 0)
+            oOutLine << "";
+        
         oOutLine << std::endl;
         
         std::string sOutLine = oOutLine.str();
@@ -136,6 +171,7 @@ private:
         
         delete pGenes;
         delete pAllTranscripts;
+        delete pSplicedTranscripts;
         
         m_pLineElements->clear();
     }

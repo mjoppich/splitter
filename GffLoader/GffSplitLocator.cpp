@@ -15,4 +15,4 @@
  * 
  */
 
-#include "../GffLoader/GffSplitLocator.h"
+#include "GffSplitLocator.h"

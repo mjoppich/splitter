@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <stdlib.h>
 
 
@@ -63,6 +64,16 @@ public:
 
 		return bStartContained && bEndContained;
 	}
+        
+        std::string toString()
+        {
+            
+            std::stringstream oStringStream;
+            oStringStream << "[ " << this->getStart() << " " << this->getEnd() << " ]" << this->getLength() << " " << this;
+            
+            return oStringStream.str();
+            
+        }
 
 protected:
 

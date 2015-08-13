@@ -17,7 +17,8 @@
 #include <stdlib.h>
 
 #include "GenomicRegion.h"
-#include "GffTranscript.h"
+
+class GffTranscript;
 
 class GffEntry : public GenomicRegion {
 public:
@@ -117,60 +118,7 @@ public:
 
     }
 
-    bool hasTranscript(std::vector<uint32_t>* pPositions) {
-        if (pPositions == NULL)
-            return true;
-
-        if (m_pTranscripts == NULL)
-            return false;
-
-        bool bTranscriptFound = false;
-
-        for (uint32_t i = 0; i < m_pTranscripts->size(); ++i) {
-
-            GffTranscript* pTranscript = m_pTranscripts->at(i);
-
-            bool bStartContained = pTranscript->contains(pPositions->at(0));
-            bool bEndContained = pTranscript->contains(pPositions->at(pPositions->size() - 1));
-
-            if (!bStartContained || !bEndContained)
-                continue;
-
-            bTranscriptFound = true;
-
-        }
-
-        return bTranscriptFound;
-    }
-
-    std::vector<GffTranscript*>* hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment) {
-
-        std::vector<GffTranscript*>* pReturn = new std::vector<GffTranscript*>();
-
-        bool bPartiallyContained = false;
-        bool bFullyContained = false;
-
-        for (uint32_t i = 0; i < m_pTranscripts->size(); ++i) {
-            GffTranscript* pTranscript = m_pTranscripts->at(i);
-
-            for (uint32_t i = 0; i < pPositions->size(); ++i) {
-
-                bool bContained = pTranscript->contains(pPositions->at(i));
-
-                bPartiallyContained |= bContained;
-                bFullyContained &= bContained;
-
-            }
-            bool bAdd = (bHasPartialContainment == true) ? bPartiallyContained : bFullyContained;
-
-            if (bAdd)
-                pReturn->push_back(pTranscript);
-
-        }
-
-        return pReturn;
-
-    }
+    std::vector<GffTranscript*>* hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment);
 
     std::vector<GffEntry*>* findLevels(std::vector<uint32_t>* pPositions, std::string* pLevel, bool bPartialContainment = false) {
 
@@ -230,7 +178,7 @@ public:
 
             GffEntry* pElem = *oIt;
 
-            if ((iStart >= pElem->getStart()) && ( pElem->getEnd() <= iEnd)) {
+            if (( pElem->getStart() >= iStart) && ( pElem->getEnd() <= iEnd)) {
                 pReturn->push_back(pElem);
             }
 
