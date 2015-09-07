@@ -127,9 +127,6 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
         }
         
         delete pFlattenLevel;
-        
-        
-		
 
 }
 

@@ -146,9 +146,13 @@ int main(int argc, char** argv) {
 		//sGFFfile = "/usr/local/storage/references/Homo_sapiens.GRCh38.81.gtf";
 	}
 
-	GffLoader* pLoader = new GffLoader(sGFFFile, pIgnores);
+	GffLoader* pLoader = new GffLoader(sGFFFile, NULL);//new GffLoader(sGFFFile, pIgnores);
 	delete pIgnores;
 
+        pLoader->printStatistics();
+        
+        return 0;
+        
 	std::vector< std::pair< std::string, std::string > >* pExpandVector = new std::vector< std::pair< std::string, std::string > >();
 	pExpandVector->push_back( std::pair< std::string, std::string >("transcript", "intron") );
 	pExpandVector->push_back( std::pair< std::string, std::string >("gene", "intertrans") );

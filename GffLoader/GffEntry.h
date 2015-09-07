@@ -254,7 +254,91 @@ public:
 
         return this;
 
-    } 
+    }
+    
+    // getCount("gene", "transcript", 0)
+    uint32_t getCombinedLength(std::string* pThisFeature, uint32_t* pFoundInstances)
+    {
+        
+        if (!this->m_pFeature->compare(*pThisFeature) == 0)
+        {
+            uint32_t iTotalCount = 0;
+            
+            std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+            for (; oIt < m_pChildren->end(); ++oIt) {
+                GffEntry* pChild = (*oIt);
+
+                uint32_t iReturnCount = pChild->getCombinedLength(pThisFeature, pFoundInstances);
+                
+                iTotalCount += iReturnCount;
+                }
+            
+            
+            return iTotalCount;
+            } 
+        
+        // it's this feature
+        
+        if (pFoundInstances != NULL)
+            *pFoundInstances = *pFoundInstances + 1;
+        
+        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+        uint32_t iLength = 0;
+       for (; oIt < m_pChildren->end(); ++oIt) {
+                GffEntry* pChild = (*oIt);
+
+                iLength += pChild->getLength();
+        }
+        
+        return iLength;
+        
+    }
+    
+    
+    // getCount("gene", "transcript", 0)
+    uint32_t getCount(std::string* pThisFeature, std::string* pChildFeature, uint32_t* pFoundInstances)
+    {
+        
+        if (!this->m_pFeature->compare(*pThisFeature) == 0)
+        {
+            uint32_t iTotalCount = 0;
+            
+            std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+            for (; oIt < m_pChildren->end(); ++oIt) {
+                GffEntry* pChild = (*oIt);
+
+                uint32_t iReturnCount = pChild->getCount(pThisFeature, pChildFeature, pFoundInstances);
+                
+                iTotalCount += iReturnCount;
+                }
+            
+            
+            return iTotalCount;
+            } 
+        
+        // it's this feature
+        
+        if (pFoundInstances != NULL)
+            *pFoundInstances = *pFoundInstances + 1;
+        
+        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+        uint32_t iFound = 0;
+       for (; oIt < m_pChildren->end(); ++oIt) {
+                GffEntry* pChild = (*oIt);
+
+                if (pChildFeature->compare(*pChild->getFeature())== 0)
+                {
+                    ++iFound;
+                }
+        }
+        
+        return iFound;
+        
+    }
     
     uint32_t getMaxLocation() {
 
@@ -278,6 +362,28 @@ public:
         return m_pChildren;
     }
 
+    void printHierarchy(uint32_t iLevel = 0)
+    {
+        
+        this->sortChildren();
+        
+        std::string sPrefix = "";
+        sPrefix.insert(0, iLevel, '-');
+        
+        std::cout << sPrefix << *m_pFeature << "\t" << m_iStart << "\t" << m_iEnd << std::endl;
+        
+        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+        for (; oIt < m_pChildren->end(); ++oIt) {
+            GffEntry* pChild = (*oIt);
+
+            pChild->printHierarchy(iLevel+1);
+
+        }
+        
+        
+    }
+    
     void printEntry(uint32_t iDepth = -1);
     bool sortChildren(std::vector< std::pair<std::string, std::string> >* pExpands = NULL);
     void setInTranscriptContained(bool bValue);

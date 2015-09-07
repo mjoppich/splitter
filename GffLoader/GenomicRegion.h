@@ -53,14 +53,18 @@ public:
 
 	bool contains(GenomicRegion& oOther)
 	{
-		return ((oOther.m_iStart >= this->m_iStart) && (oOther.m_iEnd <= this->m_iEnd));
+            
+		bool bStartContained = this->contains(oOther.m_iStart);
+		bool bEndContained = this->contains(oOther.m_iEnd);
+
+		return bStartContained && bEndContained;
 	}
 
 	bool contains(GenomicRegion* pOther)
 	{
 
-		bool bStartContained = this->m_iStart <= pOther->m_iStart;
-		bool bEndContained = pOther->m_iEnd <= this->m_iEnd;
+		bool bStartContained = this->contains(pOther->m_iStart);
+		bool bEndContained = this->contains(pOther->m_iEnd);
 
 		return bStartContained && bEndContained;
 	}
@@ -69,7 +73,7 @@ public:
         {
             
             std::stringstream oStringStream;
-            oStringStream << "[ " << this->getStart() << " " << this->getEnd() << " ]" << this->getLength() << " " << this;
+            oStringStream << "[ " << this->getStart() << " " << this->getEnd() << " ]" << this->getLength() << std::endl;
             
             return oStringStream.str();
             
