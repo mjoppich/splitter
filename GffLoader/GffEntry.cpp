@@ -465,11 +465,6 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
 
             std::vector<GffEntry*>* pExons = this->find(pRegions, pExon->getStart(), pExon->getEnd());
 
-            if (pExons->size() != 1) {
-                std::cerr << "Problem with Transcript ID: " << *pTID << std::endl;
-            }
-
-
             for (uint32_t i = 0; i < pExons->size(); ++i) {
                 GffEntry* pElem = pExons->at(i);
                 pElem->setInTranscriptContained(true);
