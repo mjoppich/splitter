@@ -40,7 +40,7 @@ public:
 
             return pElem1->getLength() > pElem2->getLength();
         }
-    } ;
+    };
 
     virtual ~GffEntry();
 
@@ -256,9 +256,9 @@ public:
 
     GffEntry* addChild(GffEntry* pCandidate) {
 
-        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+        std::vector<GffEntry*>::reverse_iterator oIt = m_pChildren->rbegin();
 
-        for (; oIt < m_pChildren->end(); ++oIt) {
+        for (; oIt < m_pChildren->rend(); ++oIt) {
             GffEntry* pChild = (*oIt);
 
 
@@ -286,11 +286,26 @@ public:
 
                         return pChild->addChild(pCandidate);
 
+
                     }
                 } else {
 
-                    return pChild->addChild(pCandidate);
+                    pChildAttribute = pChild->getAttribute("Parent");
+                    std::string* pCandidateParentAttrib = pCandidate->getAttribute("Parent");
 
+                    if ((pChildAttribute == NULL) || (pCandidateParentAttrib == NULL)) {
+                        std::cerr << "Neither id nor parent" << std::endl;
+                        continue;
+                    }
+
+                    if (pChildAttribute->compare(*pCandidateParentAttrib) == 0) {
+                        return pChild->addChild(pCandidate);
+                    } else {
+
+                        std::cerr << "Parent not matching" << std::endl;
+                        return pChild->addChild(pCandidate);
+
+                    }
                 }
             }
         }
@@ -449,7 +464,7 @@ public:
     }
 
     std::vector<GffEntry*>* fillEmptyRegion(GffEntry* pRoot, std::vector<GffEntry*>* pNegElements, std::string sFeature) {
-        if (pNegElements->size() <= 1) {
+        if (pNegElements->size() < 1) {
             return NULL;
         }
 
@@ -541,8 +556,12 @@ public:
 
         std::string sPrefix = "";
         sPrefix.insert(0, iLevel, '-');
+        
+        std::string* pAttrib = this->getAttribute("ID");
+        if (pAttrib == NULL)
+            pAttrib = new std::string("null");
 
-        std::cout << sPrefix << *m_pFeature << "\t" << m_iStart << "\t" << m_iEnd << "\t" << this->getLength() << std::endl;
+        std::cout << sPrefix << *m_pFeature << "\t" << m_iStart << "\t" << m_iEnd << "\t" << this->getLength() << "\t" << *pAttrib << std::endl;
 
         std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
 
