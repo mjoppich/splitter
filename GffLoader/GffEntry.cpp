@@ -39,32 +39,55 @@ GffEntry::GffEntry(std::string* pLine)
 
     this->initialize();
 
+    if (pLine->find('\t') != std::string::npos) {
+        this->parseLine(pLine, '\t');
+        return;
+    }
+
+    if (pLine->find(' ') != std::string::npos) {
+        this->parseLine(pLine, ' ');
+        return;
+    }
+
+}
+
+GffEntry::GffEntry(std::string* pLine, uint8_t cSep)
+: GenomicRegion(0, 0), m_pChildren(NULL), m_pAttributes(NULL), m_pRegions(NULL), m_pTranscripts(NULL) {
+
+    this->initialize();
+
+    this->parseLine(pLine, cSep);
+
+}
+
+void GffEntry::parseLine(std::string* pLine, uint8_t cSep) {
+
     uint32_t iOldFound = 0;
-    uint32_t iFound = pLine->find(GffEntry::cSep, 0);
+    uint32_t iFound = pLine->find(cSep, 0);
     m_pSeqName = new std::string(*pLine, iOldFound, iFound - iOldFound);
     this->checkForEmptyValue(m_pSeqName);
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
     m_pSource = new std::string(*pLine, iOldFound, iFound - iOldFound);
     this->checkForEmptyValue(m_pSource);
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
     m_pFeature = new std::string(*pLine, iOldFound, iFound - iOldFound);
     this->checkForEmptyValue(m_pFeature);
 
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
     m_iStart = std::strtoul(pLine->substr(iOldFound, iFound - iOldFound).c_str(), NULL, 0); // TODO this might not work
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
     m_iEnd = std::strtoul(pLine->substr(iOldFound, iFound - iOldFound).c_str(), NULL, 0); // TODO this might not work
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
 
     std::string sScore = pLine->substr(iOldFound, iFound - iOldFound);
     if ((sScore.length() == 1) && (sScore[0] == '.'))
@@ -73,7 +96,7 @@ GffEntry::GffEntry(std::string* pLine)
         m_fScore = std::strtof(sScore.c_str(), NULL);
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
 
     if (iFound - iOldFound != 1)
         std::cerr << "Error Parsing GTF v2.0 Line: Strand Information: " << *pLine << std::endl;
@@ -86,7 +109,7 @@ GffEntry::GffEntry(std::string* pLine)
         m_iForwardStrand = (cStrandInfo == '+') ? 1 : 0;
 
     iOldFound = iFound + 1;
-    iFound = pLine->find(GffEntry::cSep, iOldFound);
+    iFound = pLine->find(cSep, iOldFound);
 
     if (iFound - iOldFound != 1)
         std::cerr << "Error Parsing GTF v2.0 Line: Codon: " << *pLine << std::endl;
@@ -211,11 +234,13 @@ bool GffEntry::sortChildren(std::vector< std::pair<std::string, std::string> >* 
         }
 
         std::vector<GffEntry*>* pRegions = NULL;
+        GffEntry::sSortEntriesAsc oSorter;
 
         if (iExpandIndex != -1) {
 
+
             if (m_pChildren->size() > 1) {
-                std::sort(m_pChildren->begin(), m_pChildren->end(), GffEntry::sSortEntriesAsc);
+                std::sort(m_pChildren->begin(), m_pChildren->end(), oSorter);
             }
 
             pRegions = this->fillEmptyRegion(pExpands->at(iExpandIndex).second);
@@ -232,7 +257,7 @@ bool GffEntry::sortChildren(std::vector< std::pair<std::string, std::string> >* 
         }
 
         if (m_pChildren->size() > 1) {
-            std::sort(m_pChildren->begin(), m_pChildren->end(), GffEntry::sSortEntriesAsc);
+            std::sort(m_pChildren->begin(), m_pChildren->end(), oSorter);
         }
 
         if (bPrint)
@@ -383,6 +408,112 @@ bool GffEntry::getInTranscriptContained() {
     return m_bInTranscriptContained;
 }
 
+std::vector<GffEntry*>* GffEntry::getAllChildren(std::string* pFeature) {
+
+    if (pFeature == NULL)
+        return m_pChildren;
+
+
+    std::vector<GffEntry*>* pFoundChildren = new std::vector<GffEntry*>();
+    std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+
+    for (; oIt < m_pChildren->end(); ++oIt) {
+        GffEntry* pChild = (*oIt);
+
+        if (pFeature->compare(*pChild->getFeature()) == 0) {
+            pFoundChildren->push_back(pChild);
+        } else {
+
+            std::vector<GffEntry*>* pFound = pChild->getAllChildren(pFeature);
+            pFoundChildren->insert(pFoundChildren->end(), pFound->begin(), pFound->end());
+            delete pFound;
+
+        }
+    }
+
+    //pFoundChildren = this->fillEmptyRegion(this, pExons, std::string("intron"));
+
+    return pFoundChildren;
+
+}
+
+uint32_t GffEntry::getStatistics(GffLoader::sStatisticElement* pElement, GffLoader::sStatisticResult* pResults) {
+
+    if (!this->m_pFeature->compare(pElement->sParent) == 0) {
+
+        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
+
+        for (; oIt < m_pChildren->end(); ++oIt) {
+            GffEntry* pChild = (*oIt);
+
+            pChild->getStatistics(pElement, pResults);
+        }
+
+        return 0;
+    }
+
+    std::vector<GffEntry*>* pChildren = this->getAllChildren(&(pElement->sBase));
+    std::vector<GffEntry*>* pRevChildren;
+    GenomicRegion* pBounds;
+    GffEntry* pBoundary;
+    
+    switch (pElement->iModifier) {
+
+        case 0:
+            // normal case
+            ++(pResults->iParentCount);
+            pResults->iBaseCount += pChildren->size();
+            pResults->iLengthBase += GffEntry::getLengthVec(pChildren);
+
+            break;
+        case 1:
+
+            // reverse case
+
+            ++(pResults->iParentCount);
+
+            pRevChildren = this->fillEmptyRegion(this, pChildren, "intron");
+
+            pResults->iBaseCount += pRevChildren->size();
+            pResults->iLengthBase += GffEntry::getLengthVec(pRevChildren);
+
+            GffEntry::deleteVec(pRevChildren);
+
+            break;
+
+        case 2:
+
+            // reverse case, tight
+
+            ++(pResults->iParentCount);
+
+            pBounds = GffEntry::getBoundaries(pChildren);
+            pBoundary = new GffEntry(this, true);
+            pBoundary->setStart(pBounds->getStart());
+            pBoundary->setEnd(pBounds->getEnd());
+            pRevChildren = this->fillEmptyRegion(pBoundary, pChildren, "intron");
+
+            pResults->iBaseCount += pRevChildren->size();
+            pResults->iLengthBase += GffEntry::getLengthVec(pRevChildren);
+
+            GffEntry::deleteVec(pRevChildren);
+            delete pBounds;
+            delete pBoundary;
+
+
+
+            break;
+
+        default: break;
+
+    }
+
+
+    return 0;
+
+}
+
 void GffEntry::flatten(std::string* pFlattenLevel) {
 
     if (m_pFeature->compare(pFlattenLevel->c_str()) != 0) {
@@ -425,7 +556,7 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
     vExonBounds.erase(std::unique(vExonBounds.begin(), vExonBounds.end()), vExonBounds.end());
 
 
-//    std::cout << "THIS: " << this->getStart() << " " << this->getEnd() << " " << this->getLength() << std::endl;
+    //    std::cout << "THIS: " << this->getStart() << " " << this->getEnd() << " " << this->getLength() << std::endl;
     uint32_t i;
     for (i = 0; i < vExonBounds.size() - 1; ++i) {
         if (this->getStart() > vExonBounds.at(i))
@@ -453,7 +584,15 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
         std::string* pTID = pEntryTranscript->getAttribute("transcript_id");
 
         if (pTID == NULL)
-            continue;
+        {
+            
+            pTID = pEntryTranscript->getAttribute("ID");
+            
+            
+            if (pTID == NULL)
+                continue;
+        }
+            
 
         GffTranscript* pTranscript = new GffTranscript(*pTID, pEntryTranscript->getStart(), pEntryTranscript->getEnd());
 
@@ -490,29 +629,30 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
 
 std::vector<GffTranscript*>* GffEntry::hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment) {
 
-        std::vector<GffTranscript*>* pReturn = new std::vector<GffTranscript*>();
+    std::vector<GffTranscript*>* pReturn = new std::vector<GffTranscript*>();
 
-        bool bPartiallyContained = false;
-        bool bFullyContained = false;
+    bool bPartiallyContained = false;
+    bool bFullyContained = false;
 
-        for (uint32_t i = 0; i < m_pTranscripts->size(); ++i) {
-            GffTranscript* pTranscript = m_pTranscripts->at(i);
+    for (uint32_t i = 0; i < m_pTranscripts->size(); ++i) {
+        GffTranscript* pTranscript = m_pTranscripts->at(i);
 
-            for (uint32_t i = 0; i < pPositions->size(); ++i) {
+        for (uint32_t i = 0; i < pPositions->size(); ++i) {
 
-                bool bContained = pTranscript->contains(pPositions->at(i));
+            bool bContained = pTranscript->contains(pPositions->at(i));
 
-                bPartiallyContained |= bContained;
-                bFullyContained &= bContained;
-
-            }
-            bool bAdd = (bHasPartialContainment == true) ? bPartiallyContained : bFullyContained;
-
-            if (bAdd)
-                pReturn->push_back(pTranscript);
+            bPartiallyContained |= bContained;
+            bFullyContained &= bContained;
 
         }
+        bool bAdd = (bHasPartialContainment == true) ? bPartiallyContained : bFullyContained;
 
-        return pReturn;
+        if (bAdd)
+            pReturn->push_back(pTranscript);
 
     }
+
+    return pReturn;
+
+}
+

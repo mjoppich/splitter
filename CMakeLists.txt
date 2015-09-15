@@ -17,14 +17,20 @@ file(GLOB splitter_SRC
     "GffLoader/*.cpp"
     "SplitFinder/*.h"
     "SplitFinder/*.cpp"
-    "src/*.h"
-    "src/*.cpp"
+)
+
+file(GLOB gtftools_SRC
+    "Utils/*.h"
+    "Utils/*.cpp"
+    "GffLoader/*.h"
+    "GffLoader/*.cpp"
 )
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(splitter ${splitter_SRC})
+add_executable(splitter ${splitter_SRC} "src/main.cpp")
+add_executable(gtftool ${gtftools_SRC} "src/mainGTFTool.cpp")
 
 target_link_libraries (splitter hts)
 
-install(TARGETS splitter RUNTIME DESTINATION bin)
+install(TARGETS splitter gtftool RUNTIME DESTINATION bin)
