@@ -13,7 +13,7 @@
 #include <set>
 #include <vector>
 
-#include "../GffLoader/GffEntry.h"
+#include <gtxloader/GffEntry.h>
 #include "SplitHashMap.h"
 
 #include <htslib/sam.h>

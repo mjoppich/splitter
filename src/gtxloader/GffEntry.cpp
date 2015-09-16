@@ -14,7 +14,7 @@
 
 #include "GffTranscript.h"
 
-#include "../Utils/Utils.h"
+#include <utils/Utils.h>
 
 /*
  *

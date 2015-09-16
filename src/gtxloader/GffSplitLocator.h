@@ -18,8 +18,8 @@
 #ifndef GFFSPLITLOCATOR_H
 #define GFFSPLITLOCATOR_H
 
-#include "../Utils/LineProcessor.h"
-#include "../Utils/FileWriter.h"
+#include "../utils/LineProcessor.h"
+#include <utils/FileWriter.h>
 #include "GffEntry.h"
 #include "GffTranscript.h"
 #include "GffLoader.h"

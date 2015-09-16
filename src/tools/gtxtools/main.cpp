@@ -12,10 +12,10 @@
 
 #include <omp.h>
 
-#include "../GffLoader/GffEntry.h"
-#include "../GffLoader/GffLoader.h"
-#include "../Utils/CLParser.h"
-#include "../Utils/Utils.h"
+#include <gtxloader/GffEntry.h>
+#include <gtxloader/GffLoader.h>
+#include <utils/CLParser.h>
+#include <utils/Utils.h>
 
 /*
  * 

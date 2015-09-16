@@ -13,11 +13,11 @@
 
 #include <omp.h>
 
-#include "../GffLoader/GffEntry.h"
-#include "../GffLoader/GffLoader.h"
-#include "../SplitFinder/XAMSplitStreamer.h"
-#include "../SplitFinder/FeatureManager.h"
-#include "../GffLoader/GffSplitLocator.h"
+#include <gtxloader/GffEntry.h>
+#include <gtxloader/GffLoader.h>
+#include <splits/XAMSplitStreamer.h>
+#include <splits/FeatureManager.h>
+#include <gtxloader/GffSplitLocator.h>
 
 void printArray(double* pArray, int l)
 {

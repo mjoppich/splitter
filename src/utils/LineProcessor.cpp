@@ -17,7 +17,7 @@
 
 #include <string>
 #include <fstream>
-#include "../Utils/LineProcessor.h"
+#include "LineProcessor.h"
 
 LineProcessor::LineProcessor(std::string sFileName)
 {

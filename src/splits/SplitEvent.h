@@ -9,7 +9,7 @@
 #define SPLITEVENT_H_
 
 #include <inttypes.h>
-#include "../GffLoader/GffEntry.h"
+#include <gtxloader/GffEntry.h>
 #include <htslib/sam.h>
 #include <vector>
 #include <sstream>

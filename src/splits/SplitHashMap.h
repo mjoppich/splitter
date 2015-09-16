@@ -8,7 +8,7 @@
 #ifndef SPLITHASHMAP_H_
 #define SPLITHASHMAP_H_
 
-#include "../Utils/ThreadedHashMap.h"
+#include <utils/ThreadedHashMap.h>
 
 class SplitEvent;
 
