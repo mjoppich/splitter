@@ -81,18 +81,11 @@ public:
         m_pSource = pNewSource;
     }
 
-    void setAttribute(std::string& sKey, std::string sValue) {
-        m_pAttributes->insert(std::pair<std::string, std::string>(sKey, sValue));
-    }
+    void setAttribute(std::string &sKey, std::string sValue);
 
-    std::string* getAttribute(std::string sKey) {
-        std::map<std::string, std::string>::iterator oIt = m_pAttributes->find(sKey);
+    std::string *getAttribute(std::string sKey);
 
-        if (oIt != m_pAttributes->end())
-            return new std::string(oIt->second);
-
-        return NULL;
-    }
+    std::string *getID();
 
     GffEntry* getParent() {
         return m_pParent;
@@ -137,78 +130,10 @@ public:
 
     std::vector<GffTranscript*>* hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment);
 
-    std::vector<GffEntry*>* findLevels(std::vector<uint32_t>* pPositions, std::string* pLevel, bool bPartialContainment = false) {
+    std::vector<GffEntry *> *findLevels(std::vector<uint32_t> *pPositions, std::string *pLevel,
+                                        bool bPartialContainment = false);
 
-        std::vector<GffEntry*>* pLevelContained = new std::vector<GffEntry*>();
-
-        if (this->m_pFeature->compare(*pLevel) != 0) {
-
-            for (uint32_t i = 0; i < m_pChildren->size(); ++i) {
-
-                GffEntry* pChild = m_pChildren->at(i);
-
-                std::vector<GffEntry*>* pChildResults = pChild->findLevels(pPositions, pLevel, bPartialContainment);
-
-                if (pChildResults != NULL) {
-                    pLevelContained->insert(pLevelContained->end(), pChildResults->begin(), pChildResults->end());
-                    delete pChildResults;
-                }
-
-            }
-
-            return pLevelContained;
-
-        } else {
-
-            bool bPartiallyContained = false;
-            bool bFullyContained = true;
-            // correct level
-            for (uint32_t i = 0; i < pPositions->size(); ++i) {
-
-                bool bContained = this->contains(pPositions->at(i));
-
-                bPartiallyContained |= bContained;
-                bFullyContained &= bContained;
-
-            }
-
-            bool bAdd = (bPartialContainment == true) ? bPartiallyContained : bFullyContained;
-
-            if (bAdd)
-                pLevelContained->push_back(this);
-
-
-            return pLevelContained;
-
-        }
-
-        return pLevelContained;
-
-    }
-
-    std::vector<GffEntry*>* find(std::vector<GffEntry*>* pElements, uint32_t iStart, uint32_t iEnd) {
-
-        std::vector<GffEntry*>* pReturn = new std::vector<GffEntry*>();
-        std::vector<GffEntry*>::iterator oIt;
-
-        for (oIt = pElements->begin(); oIt != pElements->end(); ++oIt) {
-
-            GffEntry* pElem = *oIt;
-
-            if ((pElem->getStart() >= iStart) && (pElem->getEnd() <= iEnd)) {
-                pReturn->push_back(pElem);
-            }
-
-        }
-
-        if (pReturn->size() == 0) {
-            delete pReturn;
-            return NULL;
-        }
-
-        return pReturn;
-
-    }
+    std::vector<GffEntry *> *find(std::vector<GffEntry *> *pElements, uint32_t iStart, uint32_t iEnd);
 
     GffEntry* getRegion(uint32_t iStart, uint32_t iEnd) {
         return new GffEntry(*this->getSeqName(), *this->getSource(), "region", iStart, iEnd);
@@ -232,118 +157,15 @@ public:
 
     }
 
-    GffEntry* addChildren(std::vector<GffEntry*>* pChildren) {
-
-        std::cout << "Adding Children to " << *m_pFeature << " named " << *m_pSeqName << " : " << pChildren->size() << std::endl;
-
-        std::vector<GffEntry*>::iterator oIt = pChildren->begin();
-
-        for (; oIt < pChildren->end(); ++oIt) {
-            GffEntry* pChild = (*oIt);
-
-            pChild->setParent(this);
-
-        }
-
-        m_pChildren->reserve(m_pChildren->size() + pChildren->size());
-        m_pChildren->insert(m_pChildren->end(), pChildren->begin(), pChildren->end());
-
-        return this;
-
-    }
+    GffEntry *addChildren(std::vector<GffEntry *> *pChildren);
 
     std::vector<GffEntry*>* getAllChildren(std::string* pFeature = NULL);
 
-    GffEntry* addChild(GffEntry* pCandidate) {
+    GffEntry *findChildWithAttribute(std::string *pAttrib, std::string *pCandidateAttribute);
 
-        std::vector<GffEntry*>::reverse_iterator oIt = m_pChildren->rbegin();
+    GffEntry *addChildSimple(GffEntry *pCandidate);
 
-        for (; oIt < m_pChildren->rend(); ++oIt) {
-            GffEntry* pChild = (*oIt);
-
-
-            if (pChild->getFeature()->compare(*(pCandidate->getFeature())) == 0) {
-                break;
-            }
-
-            if (pChild->contains(pCandidate)) {
-
-                std::string sFeatureID = *(pChild->getFeature());
-                sFeatureID.append("_id");
-
-                std::string* pChildAttribute = pChild->getAttribute(sFeatureID);
-
-                if (pChildAttribute != NULL) {
-                    std::string* pCandidateAttribute = pCandidate->getAttribute(sFeatureID);
-
-                    if (!(pCandidateAttribute == NULL)) {
-
-                        if (pCandidateAttribute->compare(*pChildAttribute) == 0) {
-                            return pChild->addChild(pCandidate);
-                        }
-
-                    } else {
-
-                        return pChild->addChild(pCandidate);
-
-
-                    }
-                } else {
-
-                    pChildAttribute = pChild->getAttribute("Parent");
-                    std::string* pCandidateParentAttrib = pCandidate->getAttribute("Parent");
-
-                    if ((pChildAttribute == NULL) || (pCandidateParentAttrib == NULL)) {
-                        std::cerr << "Neither id nor parent" << std::endl;
-                        continue;
-                    }
-
-                    if (pChildAttribute->compare(*pCandidateParentAttrib) == 0) {
-                        return pChild->addChild(pCandidate);
-                    } else {
-
-                        std::cerr << "Parent not matching" << std::endl;
-                        return pChild->addChild(pCandidate);
-
-                    }
-                }
-            }
-        }
-
-        pCandidate->setParent(this);
-        m_pChildren->push_back(pCandidate);
-
-        return this;
-
-    }
-
-    static uint32_t getLengthVec(std::vector<GffEntry*>* pElements) {
-        uint32_t iLength = 0;
-        for (uint32_t i = 0; i < pElements->size(); ++i) {
-
-            GffEntry* pElem = pElements->at(i);
-
-            iLength += pElem->getLength();
-
-        }
-
-        return iLength;
-
-    }
-
-    static void deleteVec(std::vector<GffEntry*>* pElements) {
-
-        for (uint32_t i = 0; i < pElements->size(); ++i) {
-
-            GffEntry* pElem = pElements->at(i);
-
-            delete pElem;
-
-        }
-
-        delete pElements;
-
-    }
+    GffEntry *addChild(GffEntry *pCandidate);
 
     static GenomicRegion* getBoundaries(std::vector<GffEntry*>* pElements) {
 
@@ -367,18 +189,37 @@ public:
         return pBounds;
     }
 
-    uint32_t getStatistics(GffLoader::sStatisticElement* pElement, GffLoader::sStatisticResult* pResults);
+    static uint32_t getLengthVec(std::vector<GffEntry *> *pElements) {
+        uint32_t iLength = 0;
+        for (uint32_t i = 0; i < pElements->size(); ++i) {
 
-    bool hasChild(std::string* pFeature) {
-        for (std::vector<GffEntry*>::iterator oIt = m_pChildren->begin(); oIt != m_pChildren->end(); ++oIt) {
-            GffEntry* pChild = *oIt;
+            GffEntry *pElem = pElements->at(i);
 
-            if (pChild->getFeature()->compare(*pFeature) == 0)
-                return true;
+            iLength += pElem->getLength();
+
         }
 
-        return false;
+        return iLength;
+
     }
+
+    static void deleteVec(std::vector<GffEntry *> *pElements) {
+
+        for (uint32_t i = 0; i < pElements->size(); ++i) {
+
+            GffEntry *pElem = pElements->at(i);
+
+            delete pElem;
+
+        }
+
+        delete pElements;
+
+    }
+
+    uint32_t getStatistics(GffLoader::sStatisticElement* pElement, GffLoader::sStatisticResult* pResults);
+
+    bool hasChild(std::string *pFeature);
 
 
 
@@ -386,194 +227,20 @@ public:
 
     // parent must be pThisFeature, how many children with feature pChildFeature exist?
 
-    uint32_t getCount(std::string* pThisFeature, std::string* pChildFeature, uint32_t* pFoundInstances) {
-
-        // this is not parent feature, go down further
-        if (!this->m_pFeature->compare(*pThisFeature) == 0) {
-            uint32_t iTotalCount = 0;
-
-            std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
-
-            for (; oIt < m_pChildren->end(); ++oIt) {
-                GffEntry* pChild = (*oIt);
-
-                uint32_t iReturnCount = pChild->getCount(pThisFeature, pChildFeature, pFoundInstances);
-
-                iTotalCount += iReturnCount;
-            }
-
-
-            return iTotalCount;
-        }
-
-        // it's this feature
-
-        if (pFoundInstances != NULL)
-            *pFoundInstances = *pFoundInstances + 1;
-
-        std::vector<GffEntry*>* pElements = this->getChildren(pChildFeature);
-        if (pElements == NULL)
-            return 0;
-
-        return pElements->size();
-
-    }
+    uint32_t getCount(std::string *pThisFeature, std::string *pChildFeature, uint32_t *pFoundInstances);
 
     std::vector<GffEntry*>* getChildren(std::string sFeature) {
         return this->getChildren(&sFeature);
     }
 
-    std::vector<GffEntry*>* getChildren(std::string* pFeature = NULL) {
+    std::vector<GffEntry *> *getChildren(std::string *pFeature = NULL);
 
-        if (pFeature == NULL)
-            return m_pChildren;
+    std::vector<GffEntry *> *fillEmptyRegion(GffEntry *pRoot, std::vector<GffEntry *> *pNegElements,
+                                             std::string sFeature);
 
+    uint32_t getMaxLocation();
 
-        std::vector<GffEntry*>* pFoundChildren = new std::vector<GffEntry*>();
-        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
-
-
-        for (; oIt < m_pChildren->end(); ++oIt) {
-            GffEntry* pChild = (*oIt);
-
-            if (pFeature->compare(*pChild->getFeature()) == 0) {
-                pFoundChildren->push_back(pChild);
-            }
-        }
-
-        if (pFoundChildren->size() > 0) {
-            return pFoundChildren;
-        }
-
-        if (pFeature->compare("intron") == 0) {
-
-            std::string* psExon = new std::string("exon");
-            std::vector<GffEntry*>* pExons = this->getChildren(psExon);
-
-            delete pFoundChildren;
-            pFoundChildren = this->fillEmptyRegion(this, pExons, std::string("intron"));
-
-            delete pExons;
-            delete psExon;
-
-            return pFoundChildren;
-        }
-
-        return pFoundChildren;
-
-    }
-
-    std::vector<GffEntry*>* fillEmptyRegion(GffEntry* pRoot, std::vector<GffEntry*>* pNegElements, std::string sFeature) {
-        if (pNegElements->size() < 1) {
-            return NULL;
-        }
-
-        std::vector<GffEntry*>* pReturn = new std::vector<GffEntry*>();
-
-        GffEntry* pOldElement = pNegElements->at(0);
-
-        if (pRoot->getStart() != pOldElement->getStart()) {
-            // add new intron
-            GffEntry* pGap = new GffEntry(pRoot, true);
-
-            pGap->setFeature(new std::string(sFeature));
-            pGap->setSource(new std::string("splitter(auto)"));
-
-            pGap->setStart(pRoot->getStart());
-            pGap->setEnd(pOldElement->getStart() - 1);
-
-            pGap->setAutogenerated(true);
-
-            pReturn->push_back(pGap);
-        }
-
-        uint32_t iNext = 1;
-        GffEntry* pElement = NULL;
-        while (iNext < pNegElements->size()) {
-            pElement = pNegElements->at(iNext);
-            ++iNext;
-
-            uint32_t iDist = pElement->getStart() - pOldElement->getEnd();
-
-            if (iDist > 1) {
-                GffEntry* pGap = new GffEntry(pRoot, true);
-
-                pGap->setFeature(new std::string(sFeature));
-                pGap->setSource(new std::string("splitter(auto)"));
-
-                pGap->setStart(pOldElement->getEnd() + 1);
-                pGap->setEnd(pElement->getStart() - 1);
-
-                pGap->setAutogenerated(true);
-
-                if (pGap->getStart() <= pGap->getEnd())
-                    pReturn->push_back(pGap);
-            }
-
-            pOldElement = pElement;
-
-        }
-
-        if (pOldElement->getEnd() != pRoot->getEnd()) {
-            GffEntry* pGap = new GffEntry(pRoot, true);
-
-            pGap->setFeature(new std::string(sFeature));
-            pGap->setSource(new std::string("splitter(auto)"));
-
-            pGap->setStart(pOldElement->getEnd() + 1);
-            pGap->setEnd(pRoot->getEnd());
-
-            pGap->setAutogenerated(true);
-
-            if (pGap->getStart() <= pGap->getEnd())
-                pReturn->push_back(pGap);
-        }
-
-        return pReturn;
-    }
-
-    uint32_t getMaxLocation() {
-
-        uint32_t iMax = this->getEnd();
-
-        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
-
-        for (; oIt < m_pChildren->end(); ++oIt) {
-            GffEntry* pChild = (*oIt);
-
-            if (pChild->getEnd() > iMax)
-                iMax = pChild->getEnd();
-
-        }
-
-        return iMax;
-
-    }
-
-    void printHierarchy(uint32_t iLevel = 0) {
-
-        this->sortChildren();
-
-        std::string sPrefix = "";
-        sPrefix.insert(0, iLevel, '-');
-        
-        std::string* pAttrib = this->getAttribute("ID");
-        if (pAttrib == NULL)
-            pAttrib = new std::string("null");
-
-        std::cout << sPrefix << *m_pFeature << "\t" << m_iStart << "\t" << m_iEnd << "\t" << this->getLength() << "\t" << *pAttrib << std::endl;
-
-        std::vector<GffEntry*>::iterator oIt = m_pChildren->begin();
-
-        for (; oIt < m_pChildren->end(); ++oIt) {
-            GffEntry* pChild = (*oIt);
-
-            pChild->printHierarchy(iLevel + 1);
-
-        }
-
-
-    }
+    void printHierarchy(uint32_t iLevel = 0, uint32_t iMaxLevel = -1);
 
     void printEntry(uint32_t iDepth = -1);
     bool sortChildren(std::vector< std::pair<std::string, std::string> >* pExpands = NULL);
@@ -598,8 +265,8 @@ protected:
     bool m_bInTranscriptContained;
 
     std::map<std::string, std::string>* m_pAttributes;
-
     std::vector<GffEntry*>* m_pChildren;
+
     std::vector<GffEntry*>* m_pRegions;
     std::vector<GffTranscript*>* m_pTranscripts;
 

@@ -45,55 +45,52 @@ int main(int argc, char** argv) {
     }
     
     std::cerr << "GTF File: " << *pGTF << std::endl;
-    
-    std::string* pStatsTSV = pConfig->getArgument("stats");
 
-    if (pStatsTSV == NULL) {
-        std::cerr << "Problem with configuration: missing argument stats" << std::endl;
+    GffLoader *pLoader = new GffLoader(*pGTF, NULL); //new GffLoader(sGFFFile, pIgnores);
 
-        return 2;
-    }
-    
-    std::cerr << "Stats File: " << *pStatsTSV << std::endl;
+    if (pConfig->isSet("stats") == true) {
+        std::string *pStatsTSV = pConfig->getArgument("stats");
 
-    std::vector< std::string >* pStats = Utils<int,int>::readByLine( pStatsTSV );
-    std::vector< GffLoader::sStatisticElement* >* pStatPairs = NULL;
-    if (pStats != NULL)
-    {
-        pStatPairs = new std::vector< GffLoader::sStatisticElement* >();
-        
-        for (uint32_t i = 0; i < pStats->size(); ++i)
-        {
-            GffLoader::sStatisticElement* pElement = new GffLoader::sStatisticElement();
-            
-            std::string sLine = pStats->at(i);
-                        
-            std::vector<std::string> vElems = Utils<int,int>::split(sLine, '\t');
-            
-            pElement->sParent = vElems.at(0);
-            pElement->sBase = vElems.at(1);
-            pElement->iModifier = atoi(vElems.at(2).c_str());
-            
-            pStatPairs->push_back( pElement );
-            
+        std::cerr << "Stats File: " << *pStatsTSV << std::endl;
+
+        std::vector<std::string> *pStats = Utils<int, int>::readByLine(pStatsTSV);
+        std::vector<GffLoader::sStatisticElement *> *pStatPairs = NULL;
+        if (pStats != NULL) {
+            pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
+
+            for (uint32_t i = 0; i < pStats->size(); ++i) {
+                GffLoader::sStatisticElement *pElement = new GffLoader::sStatisticElement();
+
+                std::string sLine = pStats->at(i);
+
+                std::vector<std::string> vElems = Utils<int, int>::split(sLine, '\t');
+
+                pElement->sParent = vElems.at(0);
+                pElement->sBase = vElems.at(1);
+                pElement->iModifier = atoi(vElems.at(2).c_str());
+
+                pStatPairs->push_back(pElement);
+
+            }
+
         }
-        
+
+        pLoader->printStatistics(pStatPairs);
+
+        if (pStats != NULL) {
+            pStats->clear();
+
+            delete pStats;
+        }
+
     }
-    
-    
-    
-    
-    
-    
-    GffLoader* pLoader = new GffLoader(*pGTF, NULL); //new GffLoader(sGFFFile, pIgnores);    
-    pLoader->printStatistics( pStatPairs );
-    
-    if (pStats != NULL)
+
+
+    if (pConfig->isSet("validate") == true)
     {
-        pStats->clear();
-        
-        delete pStats;
+        pLoader->printValidation();
     }
+
 
     delete pLoader;
     delete pConfig;
