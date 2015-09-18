@@ -80,6 +80,8 @@ public:
             
         }
     };
+
+    std::vector<GffEntry *> *addGenesInParallel(std::vector<GffEntry *> *pGenes);
     
     void printStatisticResult(std::string sPrefix, sStatisticElement* pElement, sStatisticResult* pResult)
     {

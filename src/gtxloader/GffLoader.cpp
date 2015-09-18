@@ -26,72 +26,69 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
 
 
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
-
-    std::vector<GffEntry*>* pCurrentTranscript = NULL;
-
     oInputStream.open(sFileName.c_str());
-
-    GffEntry* pCurrentGene = NULL;
-
-    std::cout << "Start read in for: " << sFileName << " on " << omp_get_max_threads() << " threads" << std::endl;
-    while (!oInputStream.eof()) {
-
-        std::getline(oInputStream, sLine);
-
-        if ((sLine[0] == '#') || (sLine[0] == '\n') || (sLine[0] == '\0'))
-            continue;
-
-        GffEntry* pEntry = new GffEntry(&sLine);
-        std::string* pSeqName = pEntry->getSeqName();
-
-        if (pSeqName == NULL)
-            continue;
-
-        if (std::find(m_pChromosomeNames->begin(), m_pChromosomeNames->end(), *pSeqName) == m_pChromosomeNames->end())
-            m_pChromosomeNames->push_back(*pSeqName);
-
-        std::string* pPrefixedSeqName = new std::string(pPrefix->c_str());
-        pPrefixedSeqName->append(pSeqName->c_str());
-        pEntry->setSeqName(pPrefixedSeqName);
-        pSeqName = pEntry->getSeqName();
-
-        std::string* pFeature = pEntry->getFeature();
-
-        if (pIgnoreFeatures != NULL) {
-            std::vector<std::string>::iterator oSIt = std::find(pIgnoreFeatures->begin(), pIgnoreFeatures->end(), *pFeature);
-
-            // gff entry feature is in ignore features list
-            if (oSIt != pIgnoreFeatures->end()) {
-                delete pEntry;
-                continue;
-            }
-
-        }
-
-
-        if (pFeature->compare("gene") == 0) {
-            pCurrentGene = pEntry;
-
-            std::vector<GffEntry*>* pGffEntries = createEntriesForSeqName(pSeqName);
-            pGffEntries->push_back(pEntry);
-
-        } else {
-
-            pCurrentGene->addChild(pEntry);
-            continue;
-
-        }
-
-
-
-
-    }
 
 #pragma omp parallel
     {
 
 #pragma omp single
         {
+            std::vector<GffEntry *> *pGenes = new std::vector<GffEntry *>();
+
+            std::cout << "Start read in for: " << sFileName << " on " << omp_get_max_threads() << " threads" <<
+            std::endl;
+            while (!oInputStream.eof()) {
+
+                std::getline(oInputStream, sLine);
+
+                if ((sLine[0] == '#') || (sLine[0] == '\n') || (sLine[0] == '\0'))
+                    continue;
+
+                GffEntry *pEntry = new GffEntry(&sLine);
+                std::string *pSeqName = pEntry->getSeqName();
+
+                if (pSeqName == NULL)
+                    continue;
+
+                if (std::find(m_pChromosomeNames->begin(), m_pChromosomeNames->end(), *pSeqName) ==
+                    m_pChromosomeNames->end())
+                    m_pChromosomeNames->push_back(*pSeqName);
+
+                std::string *pPrefixedSeqName = new std::string(pPrefix->c_str());
+                pPrefixedSeqName->append(pSeqName->c_str());
+                pEntry->setSeqName(pPrefixedSeqName);
+
+                std::string *pFeature = pEntry->getFeature();
+
+                if (pIgnoreFeatures != NULL) {
+                    std::vector<std::string>::iterator oSIt = std::find(pIgnoreFeatures->begin(),
+                                                                        pIgnoreFeatures->end(), *pFeature);
+
+                    // gff entry feature is in ignore features list
+                    if (oSIt != pIgnoreFeatures->end()) {
+                        delete pEntry;
+                        continue;
+                    }
+
+                }
+
+                if (pFeature->compare("gene") == 0) {
+
+                    // if size of intermediate vector too large -> add stuff in parallel
+
+                    if (pGenes->size() > 50) {
+                        pGenes = this->addGenesInParallel(pGenes);
+                    }
+                }
+
+                // add entry to current gene
+                pGenes->push_back(pEntry);
+
+            }
+
+            pGenes = this->addGenesInParallel(pGenes);
+
+            delete pGenes;
 
             // now sort the single vectors
             // TODO this is nicely parallelisable
@@ -374,3 +371,38 @@ GffLoader::~GffLoader() {
     delete pSortedGffEntries;
 }
 
+std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *pGenes) {
+
+#pragma omp task firstprivate(pGenes)
+    {
+
+        GffEntry *pCurrentGene = NULL;
+
+        for (uint32_t i = 0; i < pGenes->size(); ++i) {
+
+            GffEntry *pProcEntry = pGenes->at(i);
+
+            if (pProcEntry->getFeature()->compare("gene") == 0) {
+                pCurrentGene = pProcEntry;
+#pragma omp critical
+                {
+                    std::vector<GffEntry *> *pGffEntries = createEntriesForSeqName(pProcEntry->getSeqName());
+                    pGffEntries->push_back(pProcEntry);
+                }
+
+            } else {
+
+                pCurrentGene->addChild(pProcEntry);
+                continue;
+
+            }
+
+        }
+
+        delete pGenes;
+
+    }
+
+    return new std::vector<GffEntry *>();
+
+}

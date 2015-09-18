@@ -694,6 +694,12 @@ GffEntry *GffEntry::addChild(GffEntry *pCandidate) {
 
     if (!bSameLevelFound) {
 
+        // if there's no child yet, we must insert here
+        if (m_pChildren->size() == 0) {
+            return this->addChildSimple(pCandidate);
+        }
+
+
         // try to put candidate in some child
 
         for (oIt = m_pChildren->rbegin(); oIt < m_pChildren->rend(); ++oIt) {
@@ -710,6 +716,10 @@ GffEntry *GffEntry::addChild(GffEntry *pCandidate) {
 
             std::string *pChildAttribute = pChild->getAttribute(sFeatureID);
             std::string *pCandidateAttribute = pCandidate->getAttribute(sFeatureID);
+
+            if ((pChildAttribute != NULL) && (pCandidateAttribute == NULL)) {
+                return this->addChildSimple(pCandidate);
+            }
 
             if ((pChildAttribute != NULL) && (pCandidateAttribute != NULL)) {
                 // ensembl version
