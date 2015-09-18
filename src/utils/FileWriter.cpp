@@ -7,8 +7,6 @@
 
 #include "FileWriter.h"
 
-#include <fstream>
-
 FileWriter::FileWriter(std::string sFileName) {
     m_bSelfCreated = true;
 

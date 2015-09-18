@@ -12,6 +12,7 @@
 #include <ostream>
 #include <fstream>
 #include <inttypes.h>
+#include <stdlib.h>
 
 class FileWriter {
 public:

@@ -8,6 +8,8 @@
 #ifndef CLPARSER_H
 #define	CLPARSER_H
 
+#include <inttypes.h>
+
 class CLParser {
 public:
     CLParser(int argc, char** argv);
