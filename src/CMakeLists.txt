@@ -5,11 +5,11 @@ cmake_minimum_required (VERSION 2.8.11)
 project (splittools)
 set(CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.7")
-set(CMAKE_C_COMPILER "/usr/bin/gcc-4.7")
+#set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.7")
+#set(CMAKE_C_COMPILER "/usr/bin/gcc-4.7")
 
-link_directories(~/cpp/htslib/)
-include_directories(~/cpp/htslib/)
+#link_directories(~/cpp/htslib/)
+#include_directories(~/cpp/htslib/)
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -42,20 +42,23 @@ file(GLOB splitslib_H
 file(GLOB splitslib_SRC
         "splits/*.cpp"
 )
-add_library(splits ${splitslib_SRC} ${splitslib_H})
+#add_library(splits ${splitslib_SRC} ${splitslib_H})
 
 
 TARGET_LINK_LIBRARIES(gtx splitutils)
-TARGET_LINK_LIBRARIES(splits gtx hts)
+#TARGET_LINK_LIBRARIES(splits gtx hts)
 ADD_EXECUTABLE(gtxtools "tools/gtxtools/main.cpp")
-ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
+#ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
 TARGET_LINK_LIBRARIES(gtxtools gtx)
-TARGET_LINK_LIBRARIES(splitter splits)
+#TARGET_LINK_LIBRARIES(splitter splits)
 target_include_directories (splitutils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (gtx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (splits PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+#target_include_directories (splits PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (gtxtools PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+#target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-install(TARGETS splitutils gtx splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
-install(FILES ${splitslib_H} ${gtxlib_H} ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+install(TARGETS splitutils gtx DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
+install(FILES ${gtxlib_H} ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+
+#install(TARGETS splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
+#install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)

@@ -19,9 +19,9 @@ HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
 
-unix|win32: LIBS += -L$$PWD/../../lib/ -lsplitutils -lgtx
+unix|win32: LIBS += -L$$PWD/../../../lib/ -lsplitutils -lgtx
 
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp
 
-INCLUDEPATH += $$PWD/../../include/
+INCLUDEPATH += $$PWD/../../../include/

@@ -10,7 +10,7 @@
 #include <QObject>
 #include <QThread>
 
-#include <libPTA/PTA_ErrorCorrect.h>
+
 
 namespace Ui {
 class MainWindow;
@@ -19,20 +19,15 @@ class MainWindow;
 class QDropEvent;
 class QMimeData;
 
-class PTAErrorCorrectionThread : public QThread
+class ApplicationThread : public QThread
 {
     Q_OBJECT
 
 public:
-    void setConfigs(const char** pConfigs, unsigned int iConfigs)
-    {
-        m_iConfigs = iConfigs;
-        m_pConfigs = (char**) pConfigs;
-    }
 
-    ~PTAErrorCorrectionThread()
+    ~ApplicationThread()
     {
-        free(m_pConfigs);
+
     }
 
 protected:
@@ -42,37 +37,31 @@ protected:
         // this thread does not need highest priority!
         QThread::currentThread()->setPriority(QThread::LowestPriority);
 
-        PTA::PTAStatistics* pStats = NULL;
-
-        PTAErrorCorrect* pErrorCorrect = new PTAErrorCorrect(m_iConfigs, (const char**) m_pConfigs);
-        pStats = pErrorCorrect->start();
-
-        this->threadFinished(pStats);
+        this->threadFinished(0);
     }
 
 public slots:
-    void threadFinished(PTA::PTAStatistics* pStats)
+    void threadFinished(void* pData)
     {
-        emit getPTAECFinished(pStats);
+        emit getThreadFinished(pData);
     }
 signals:
-    void getPTAECFinished(PTA::PTAStatistics* pStats);
+    void getThreadFinished(void* pData);
 
 private:
-    int m_iConfigs;
-    char** m_pConfigs;
+
 };
 
-class PTAExtendedBuffer : public QObject, public std::basic_streambuf<char> {
+class ExtendedBuffer : public QObject, public std::basic_streambuf<char> {
 Q_OBJECT
 public:
 
-    PTAExtendedBuffer()
+    ExtendedBuffer()
         : std::basic_streambuf<char>()
     {
     }
 
-    ~PTAExtendedBuffer()
+    ~ExtendedBuffer()
     {
     }
 
@@ -132,7 +121,7 @@ private slots:
 
     void on_oButtonStartEC_clicked();
     void on_oButtonConfig_clicked();
-    void getPTAECFinished(PTA::PTAStatistics *pStats);
+    void getApplicationFinished(void *pData);
     void receiveText(QString sString, QColor oColor);
 
     void on_pushButton_clicked();
@@ -146,11 +135,11 @@ private:
 
 // controls
 
-    bool m_bCorrectionInProgress;
+    bool m_bApplicationInProgress;
     QString m_sConfigFile;
-    PTAExtendedBuffer* m_pBufferCout;
-    PTAExtendedBuffer* m_pBufferCerr;
-    PTAErrorCorrectionThread* m_pThread;
+    ExtendedBuffer* m_pBufferCout;
+    ExtendedBuffer* m_pBufferCerr;
+    ApplicationThread* m_pThread;
 };
 
 #endif // MAINWINDOW_H

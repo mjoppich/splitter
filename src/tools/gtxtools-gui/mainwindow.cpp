@@ -2,18 +2,20 @@
 #include "ui_mainwindow.h"
 #include <QFileDialog>
 #include <QThread>
-#include <libPTA/PTA_ErrorCorrect.h>
+
 #include <QDebug>
 #include <QDropEvent>
 #include <QUrl>
 #include <QList>
 #include <QMimeData>
 
+#include <GffLoader.h>
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_pBufferCout(new PTAExtendedBuffer()),
-    m_pBufferCerr(new PTAExtendedBuffer())
+    m_pBufferCout(new ExtendedBuffer()),
+    m_pBufferCerr(new ExtendedBuffer())
 {
     ui->setupUi(this);
 
@@ -33,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QThread::currentThread()->setPriority(QThread::LowestPriority);
 
-    m_pThread = new PTAErrorCorrectionThread();
+    m_pThread = new ApplicationThread();
     QObject::connect(m_pThread, SIGNAL(getPTAECFinished(PTA::PTAStatistics*)), this , SLOT(getPTAECFinished(PTA::PTAStatistics*)), Qt::QueuedConnection );
 
     this->setAcceptDrops(true);
@@ -67,7 +69,6 @@ void MainWindow::on_oButtonStartEC_clicked()
     const char** pConfigs = (const char**) malloc(sizeof(char*) * iConfigs);
     pConfigs[0] = m_sConfigFile.toStdString().c_str();
 
-    m_pThread->setConfigs(pConfigs, iConfigs);
     m_pThread->start();
 }
 
@@ -81,11 +82,11 @@ void MainWindow::receiveText(QString sString, QColor oColor)
     qDebug() << sString;
 }
 
-void MainWindow::getPTAECFinished(PTA::PTAStatistics* pStats)
+void MainWindow::getApplicationFinished(void* pData)
 {
 
 
-
+/*
     this->ui->label_2->setText( QString::number(pStats->dSpentTime) );
     this->ui->label_8->setText( QString::number(pStats->dSpentTimeCorrection) );
     this->ui->label_9->setText( QString::number(pStats->iCorrectedReads) );
@@ -95,8 +96,9 @@ void MainWindow::getPTAECFinished(PTA::PTAStatistics* pStats)
     this->ui->label_22->setText( QString::number(pStats->iRoutesInGraph) );
     this->ui->label_24->setText( QString::number(pStats->iWidthInGraph) );
 
+*/
 
-    delete pStats;
+    free( pData );
 }
 
 void MainWindow::dropEvent(QDropEvent *oDropEvent)
