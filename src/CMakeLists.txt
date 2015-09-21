@@ -25,7 +25,7 @@ file(GLOB splitutilslib_H
 file(GLOB splitutilslib_SRC
         "utils/*.cpp"
 )
-add_library(splitutils ${splitutilslib_SRC} ${splitutilslib_H})
+add_library(splitutils ${splitutilslib_SRC} ${splitutilslib_H} utils/UtilsTemplated.h)
 
 file(GLOB gtxlib_H
         "gtxloader/*.h"
@@ -67,6 +67,9 @@ file(GLOB splitslib_SRC
 add_library(splits ${splitslib_SRC} ${splitslib_H})
 
 TARGET_LINK_LIBRARIES(splits gtx hts)
+ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
+
+TARGET_LINK_LIBRARIES(splitter splits)
 
 target_include_directories (splits PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -74,7 +77,5 @@ target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 install(TARGETS splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
-TARGET_LINK_LIBRARIES(splitter splits)
 
 EndIF()

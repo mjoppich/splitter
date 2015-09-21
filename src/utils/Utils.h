@@ -11,15 +11,15 @@
 #include <inttypes.h>
 #include <vector>
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
-template <typename T1, typename T2>
 class Utils {
 public:
 
+    /*
     static uint32_t find(std::vector< std::pair<T1, T2> >* pVec, T1* pElem1, T2* pElem2) {
 
         if (pVec == NULL)
@@ -44,6 +44,7 @@ public:
         return -1;
 
     }
+     */
 
     static std::vector< std::string >* readByLine(std::string* pFilename) {
 
@@ -81,7 +82,7 @@ public:
 
     static std::vector<std::string> split(const std::string &sString, char cDelim) {
         std::vector<std::string> vElems;
-        Utils<T1,T2>::split(sString, cDelim, vElems);
+        Utils::split(sString, cDelim, vElems);
         return vElems;
     }
 
@@ -94,7 +95,10 @@ public:
 
             argv[i] = (char*) malloc(sizeof(char) * vArgs.at(i).length());
 
-            memcpy(argv[i], vArgs.at(i).c_str(), vArgs.at(i).length());
+            const size_t iStringLength = vArgs.at(i).length();
+            memcpy(argv[i], (void *) vArgs.at(i).c_str(), iStringLength);
+
+
 
         }
     }

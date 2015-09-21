@@ -17,6 +17,47 @@
 #include <malloc.h>
 #include <omp.h>
 
+std::vector<GffLoader::sStatisticElement *> *GffLoader::parseStatFile() {
+
+    std::vector<GffLoader::sStatisticElement *> *pStatPairs = NULL;
+    if (m_pStats != NULL) {
+
+        std::vector<std::string> *pStats = Utils::readByLine(m_pStats);
+        pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
+
+        for (uint32_t i = 0; i < pStats->size(); ++i) {
+            GffLoader::sStatisticElement *pElement = new GffLoader::sStatisticElement();
+
+            std::string sLine = pStats->at(i);
+
+            std::vector<std::string> vElems = Utils::split(sLine, '\t');
+
+            pElement->sParent = vElems.at(0);
+            pElement->sBase = vElems.at(1);
+            pElement->iModifier = atoi(vElems.at(2).c_str());
+
+            pStatPairs->push_back(pElement);
+
+        }
+
+        pStats->clear();
+        delete pStats;
+
+    } else {
+
+        pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
+        pStatPairs->push_back(new sStatisticElement("chromosome", "gene", 0));
+        pStatPairs->push_back(new sStatisticElement("gene", "transcript", 0));
+        pStatPairs->push_back(new sStatisticElement("transcript", "exon", 0));
+        pStatPairs->push_back(new sStatisticElement("transcript", "exon", 1));
+
+    }
+
+    return pStatPairs;
+
+
+}
+
 bool GffLoader::checkConfig()
 {
     m_pGTxFile = this->m_pParser->getArgument("gtx");
@@ -57,6 +98,11 @@ bool GffLoader::checkConfig()
 
 uint32_t GffLoader::prepareRun(CLParser *pParser)
 {
+
+    if (m_pStats != NULL) {
+
+
+    }
 
     return 0;
 
@@ -197,37 +243,14 @@ void GffLoader::run()
 
     this->loadGTxFile();
 
-    if (m_pStats != NULL)
+    if (m_pParser->isSet("stats") == true)
     {
 
-        std::vector<std::string> *pStats = Utils<int, int>::readByLine(m_pStats);
-        std::vector<GffLoader::sStatisticElement *> *pStatPairs = NULL;
-        if (pStats != NULL) {
-            pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
-
-            for (uint32_t i = 0; i < pStats->size(); ++i) {
-                GffLoader::sStatisticElement *pElement = new GffLoader::sStatisticElement();
-
-                std::string sLine = pStats->at(i);
-
-                std::vector<std::string> vElems = Utils<int, int>::split(sLine, '\t');
-
-                pElement->sParent = vElems.at(0);
-                pElement->sBase = vElems.at(1);
-                pElement->iModifier = atoi(vElems.at(2).c_str());
-
-                pStatPairs->push_back(pElement);
-
-            }
-
-        }
+        std::vector<GffLoader::sStatisticElement *> *pStatPairs = this->parseStatFile();
 
         this->printStatistics(pStatPairs);
 
-        if (pStats != NULL) {
-            pStats->clear();
-            delete pStats;
-
+        if (pStatPairs != NULL) {
 
             for (uint32_t i = 0; i < pStatPairs->size(); ++i)
                 delete pStatPairs->at(i);
@@ -312,16 +335,6 @@ std::vector<std::string>* GffLoader::getSeqNames() {
 }
 
 void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pStatPairs) {
-
-    if (pStatPairs == NULL) {
-
-        pStatPairs = new std::vector< GffLoader::sStatisticElement* >();
-        pStatPairs->push_back(new sStatisticElement("chromosome", "gene", 0));
-        pStatPairs->push_back(new sStatisticElement("gene", "transcript", 0));
-        pStatPairs->push_back(new sStatisticElement("transcript", "exon", 0));
-        pStatPairs->push_back(new sStatisticElement("transcript", "exon", 1));
-
-    }
 
     std::vector< uint32_t* > vStatValues;
     std::vector< uint32_t* > vStatInstances;

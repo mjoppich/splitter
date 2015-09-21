@@ -15,6 +15,7 @@
 #include "GffTranscript.h"
 
 #include <utils/Utils.h>
+#include <utils/UtilsTemplated.h>
 
 /*
  *
@@ -224,7 +225,7 @@ void GffEntry::printEntry(uint32_t iDepth) {
 
 bool GffEntry::sortChildren(std::vector< std::pair<std::string, std::string> >* pExpands) {
 
-    uint32_t iExpandIndex = Utils<std::string, std::string>::find(pExpands, this->m_pFeature, NULL);
+    uint32_t iExpandIndex = UtilsTemplated<std::string, std::string>::find(pExpands, this->m_pFeature, NULL);
 
     bool bPrint = false;
 
