@@ -60,10 +60,15 @@ std::vector<GffLoader::sStatisticElement *> *GffLoader::parseStatFile() {
 
 bool GffLoader::checkConfig()
 {
+
+    bool m_bError = false;
+
     m_pGTxFile = this->m_pParser->getArgument("gtx");
 
-    if (m_pGTxFile == NULL)
+    if (m_pGTxFile == NULL) {
         std::cerr << "You must set the -gtx option to the gt(x) file you want to load." << std::endl;
+        m_bError = true;
+    }
 
     if (this->m_pParser->isSet("stats") == true)
     {
@@ -94,15 +99,17 @@ bool GffLoader::checkConfig()
     }
 
 
+    return !m_bError;
+
 }
 
 uint32_t GffLoader::prepareRun(CLParser *pParser)
 {
 
-    if (m_pStats != NULL) {
+    bool m_bPassed = this->checkConfig();
 
-
-    }
+    if (!m_bPassed)
+        return 1;
 
     return 0;
 
@@ -266,13 +273,13 @@ void GffLoader::run()
 }
 
 GffLoader::GffLoader(CLParser* pParser)
- : CLRunnable(pParser )
+        : CLRunnable( pParser )
 {
 
 }
 
 GffLoader::GffLoader(std::string sArguments)
- : CLRunnable( new CLParser( sArguments ) )
+        : CLRunnable( new CLParser( sArguments ) )
 {
 
 
@@ -353,9 +360,9 @@ void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pSta
 
         for (uint32_t i = 0; i < pStatPairs->size(); ++i) {
             GffEntry* pChrom = m_pChromosomes->at(c);
-            
-            
-            
+
+
+
             uint32_t iIndex = c * pStatPairs->size() + i;
 
             sStatisticElement* pElement = pStatPairs->at(i);
@@ -482,22 +489,28 @@ GffLoader::~GffLoader() {
     // TODO for each key in pSortedGffEntries, for each element in vector, delete
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
 
-    for (oIt = pSortedGffEntries->begin(); oIt != pSortedGffEntries->end(); ++oIt) {
+    if (pSortedGffEntries != NULL)
+    {
 
-        std::vector<GffEntry*>* pGffEntries = oIt->second;
+        for (oIt = pSortedGffEntries->begin(); oIt != pSortedGffEntries->end(); ++oIt) {
 
-        for (size_t i = 0; i < pGffEntries->size(); ++i) {
-            delete pGffEntries->at(i);
+            std::vector<GffEntry*>* pGffEntries = oIt->second;
+
+            for (size_t i = 0; i < pGffEntries->size(); ++i) {
+                delete pGffEntries->at(i);
+            }
+
+
+            delete pGffEntries;
+
         }
 
-
-        delete pGffEntries;
+        delete pSortedGffEntries;
 
     }
 
-    delete pSortedGffEntries;
-
-    delete m_pIgnoreFeatures;
+    if (m_pIgnoreFeatures != NULL)
+        delete m_pIgnoreFeatures;
 }
 
 std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *pGenes) {

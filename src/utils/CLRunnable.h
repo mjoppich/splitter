@@ -9,6 +9,7 @@ class CLRunnable
 
 public:
     CLRunnable(CLParser* pParser)
+    : m_pParser(pParser)
     {
 
     }

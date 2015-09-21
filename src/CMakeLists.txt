@@ -49,7 +49,7 @@ target_include_directories (gtx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_include_directories (gtxtools PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-
+install(TARGETS gtxtools DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 install(TARGETS splitutils gtx DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 install(FILES ${gtxlib_H} ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
@@ -57,25 +57,29 @@ install(FILES ${gtxlib_H} ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_
 
 IF("${CMAKE_SYSTEM}" MATCHES "Linux")
 
-file(GLOB splitslib_H
-        "splits/*.h"
-)
+    link_directories(~/cpp/htslib/)
+    include_directories(~/cpp/htslib/)
 
-file(GLOB splitslib_SRC
-        "splits/*.cpp"
-)
-add_library(splits ${splitslib_SRC} ${splitslib_H})
+    file(GLOB splitslib_H
+            "splits/*.h"
+    )
 
-TARGET_LINK_LIBRARIES(splits gtx hts)
-ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
+    file(GLOB splitslib_SRC
+            "splits/*.cpp"
+    )
+    add_library(splits ${splitslib_SRC} ${splitslib_H})
 
-TARGET_LINK_LIBRARIES(splitter splits)
+    TARGET_LINK_LIBRARIES(splits gtx hts)
+    ADD_EXECUTABLE(splitter "tools/splitter/main.cpp")
 
-target_include_directories (splits PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    TARGET_LINK_LIBRARIES(splitter splits)
 
-install(TARGETS splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
-install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+    target_include_directories (splits PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+    install(TARGETS splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
+    install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+    install(TARGETS splitter DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 
 
 EndIF()
