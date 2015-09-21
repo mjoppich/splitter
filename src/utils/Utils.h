@@ -99,6 +99,8 @@ public:
             strncpy(argv[i], vArgs.at(i).c_str(), iStringLength);
             argv[i][iStringLength] = '\0';
         }
+
+        return argv;
     }
 
 };

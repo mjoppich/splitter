@@ -18,6 +18,7 @@ CLParser::CLParser(std::string sArgs)
 
     const std::string sInput = std::string(sArgs);
     std::vector<std::string> vArgs = Utils::split(sInput, ' ');
+    vArgs.insert(vArgs.begin(), std::string("."));
 
     bool m_bSuccess = this->initialize(vArgs.size(), Utils::vec2char(vArgs));
 
