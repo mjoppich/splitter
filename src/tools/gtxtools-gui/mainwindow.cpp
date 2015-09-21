@@ -22,7 +22,6 @@ MainWindow::MainWindow(QWidget *parent) :
     m_pBufferCout->setTextColor(QColor( "green" ));
     m_pBufferCerr->setTextColor(QColor( "red" ));
 
-
     std::cout.rdbuf(m_pBufferCout);
     std::cerr.rdbuf(m_pBufferCerr);
 
@@ -36,7 +35,8 @@ MainWindow::MainWindow(QWidget *parent) :
     QThread::currentThread()->setPriority(QThread::LowestPriority);
 
     m_pThread = new ApplicationThread();
-    QObject::connect(m_pThread, SIGNAL(getPTAECFinished(PTA::PTAStatistics*)), this , SLOT(getPTAECFinished(PTA::PTAStatistics*)), Qt::QueuedConnection );
+
+    QObject::connect(m_pThread, SIGNAL(getThreadFinished(void*)), this , SLOT( getApplicationFinished(void*)) ), Qt::QueuedConnection );
 
     this->setAcceptDrops(true);
 

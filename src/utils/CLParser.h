@@ -8,10 +8,13 @@
 #ifndef CLPARSER_H
 #define	CLPARSER_H
 
+#include <map>
 #include <inttypes.h>
+#include <iostream>
 
 class CLParser {
 public:
+    CLParser(std::string sArgs);
     CLParser(int argc, char** argv);
     CLParser(const CLParser& orig);
     virtual ~CLParser();
@@ -42,6 +45,8 @@ public:
 
 private:
 
+    bool initialize(int argc, char** argv);
+
     void handleParsingError(std::string* pArgument) {
         std::cerr << "Error: invalid input arguments at " << std::endl;
 
@@ -66,7 +71,7 @@ private:
 
     }
 
-
+    bool m_bSuccess;
 
     std::map< std::string, std::string* >* m_pCLArguments;
     std::string* m_pThisExecutable;

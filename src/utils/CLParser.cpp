@@ -11,14 +11,40 @@
 
 #include "CLParser.h"
 
+#include "Utils.h"
+
+CLParser::CLParser(std::string sArgs)
+{
+
+    const std::string sInput = std::string(sArgs);
+    std::vector< std::string> vArgs = Utils<int, int>::split(sInput, ' ');
+
+     bool m_bSuccess = this->initialize( vArgs.size(), Utils<int, int>::vec2char(vArgs) );
+
+
+
+}
+
 CLParser::CLParser(int argc, char** argv) {
 
+    bool m_bSuccess = this->initialize(argc, argv);
+
+}
+
+CLParser::CLParser(const CLParser& orig) {
+}
+
+CLParser::~CLParser() {
+}
+
+bool CLParser::initialize(int argc, char** argv)
+{
     m_pThisExecutable = NULL;
     m_pCLArguments = NULL;
-            
+
     if (argc > 0)
         m_pThisExecutable = new std::string(argv[0]);
-    
+
     m_pCLArguments = new std::map< std::string, std::string* >();
 
     std::map< std::string, std::string* >::iterator oIt;
@@ -35,9 +61,9 @@ CLParser::CLParser(int argc, char** argv) {
 
             oIt = m_pCLArguments->insert(m_pCLArguments->end(), std::pair<std::string, std::string*>(sArgument, NULL));
             delete pArgument;
-            
+
             bAwaitsInput = false;
-            
+
             continue;
         }
 
@@ -47,7 +73,7 @@ CLParser::CLParser(int argc, char** argv) {
 
             oIt = m_pCLArguments->insert(m_pCLArguments->end(), std::pair<std::string, std::string*>(sArgument, NULL));
             delete pArgument;
-            
+
             bAwaitsInput = true;
             continue;
         }
@@ -55,7 +81,7 @@ CLParser::CLParser(int argc, char** argv) {
         if (!bAwaitsInput) {
             this->handleParsingError(pArgument);
 
-            return;
+            return false;
         }
 
         // bAwaitsInput == true
@@ -65,12 +91,4 @@ CLParser::CLParser(int argc, char** argv) {
 
 
     }
-
 }
-
-CLParser::CLParser(const CLParser& orig) {
-}
-
-CLParser::~CLParser() {
-}
-

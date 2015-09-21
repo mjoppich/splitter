@@ -24,29 +24,11 @@ int main(int argc, char** argv) {
 
 
     CLParser* pConfig = new CLParser(argc, argv);
-    std::map< std::string, std::string* >* pArguments = pConfig->getArguments();
 
-    if (pArguments == NULL) {
-        std::cerr << "Problem with configuration:" << std::endl;
+    GffLoader *pLoader = new GffLoader(pConfig); //new GffLoader(sGFFFile, pIgnores);
 
-        for (uint32_t i = 0; i < argc; ++i) {
-            std::cerr << argv[i] << std::endl;
-        }
+    pLoader->run();
 
-        return 1;
-    }
-
-    std::string* pGTF = pConfig->getArgument("gtf");
-
-    if (pGTF == NULL) {
-        std::cerr << "Problem with configuration: missing argument gtf" << std::endl;
-
-        return 2;
-    }
-    
-    std::cerr << "GTF File: " << *pGTF << std::endl;
-
-    GffLoader *pLoader = new GffLoader(*pGTF, NULL); //new GffLoader(sGFFFile, pIgnores);
 
     if (pConfig->isSet("stats") == true) {
         std::string *pStatsTSV = pConfig->getArgument("stats");

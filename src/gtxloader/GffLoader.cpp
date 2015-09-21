@@ -8,6 +8,8 @@
 #include "GffLoader.h"
 #include "GffEntry.h"
 
+#include <utils/Utils.h>
+
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -15,8 +17,53 @@
 #include <malloc.h>
 #include <omp.h>
 
-GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFeatures, std::string* pPrefix) {
+bool GffLoader::checkConfig()
+{
+    m_pGTxFile = this->m_pParser->getArgument("gtx");
 
+    if (m_pGTxFile == NULL)
+        std::cerr << "You must set the -gtx option to the gt(x) file you want to load." << std::endl;
+
+    if (this->m_pParser->isSet("stats") == true)
+    {
+        // stats file must exist
+        m_pStats = this->m_pParser->getArgument("stats");
+
+        std::cerr << "Stats File: " << *m_pStats << std::endl;
+
+    } else {
+        m_pStats = NULL;
+    }
+
+    if (this->m_pParser->isSet("prefix") == true)
+    {
+        m_pPrefix = this->m_pParser->getArgument("prefix");
+    } else {
+        m_pPrefix = new std::string("");
+    }
+
+    m_bValidate = this->m_pParser->isSet("validate");
+
+
+    if (this->m_pParser->isSet("ignorefeatures") == true)
+    {
+        // TODO this must still be coded
+    } else {
+        m_pIgnoreFeatures = NULL;
+    }
+
+
+}
+
+uint32_t GffLoader::prepareRun(CLParser *pParser)
+{
+
+    return 0;
+
+}
+
+void GffLoader::loadGTxFile()
+{
     std::ifstream oInputStream;
     std::string sLine;
 
@@ -26,7 +73,7 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
 
 
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
-    oInputStream.open(sFileName.c_str());
+    oInputStream.open(m_pGTxFile->c_str());
 
 #pragma omp parallel
     {
@@ -35,7 +82,7 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
         {
             std::vector<GffEntry *> *pGenes = new std::vector<GffEntry *>();
 
-            std::cout << "Start read in for: " << sFileName << " on " << omp_get_max_threads() << " threads" <<
+            std::cout << "Start read in for: " << *m_pGTxFile << " on " << omp_get_max_threads() << " threads" <<
             std::endl;
             while (!oInputStream.eof()) {
 
@@ -54,18 +101,18 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
                     m_pChromosomeNames->end())
                     m_pChromosomeNames->push_back(*pSeqName);
 
-                std::string *pPrefixedSeqName = new std::string(pPrefix->c_str());
+                std::string *pPrefixedSeqName = new std::string(m_pPrefix->c_str());
                 pPrefixedSeqName->append(pSeqName->c_str());
                 pEntry->setSeqName(pPrefixedSeqName);
 
                 std::string *pFeature = pEntry->getFeature();
 
-                if (pIgnoreFeatures != NULL) {
-                    std::vector<std::string>::iterator oSIt = std::find(pIgnoreFeatures->begin(),
-                                                                        pIgnoreFeatures->end(), *pFeature);
+                if (m_pIgnoreFeatures != NULL) {
+                    std::vector<std::string>::iterator oSIt = std::find(m_pIgnoreFeatures->begin(),
+                                                                        m_pIgnoreFeatures->end(), *pFeature);
 
                     // gff entry feature is in ignore features list
-                    if (oSIt != pIgnoreFeatures->end()) {
+                    if (oSIt != m_pIgnoreFeatures->end()) {
                         delete pEntry;
                         continue;
                     }
@@ -100,10 +147,6 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
                     GffEntry::sSortEntriesAsc oSorter;
 
                     std::vector<GffEntry*>* pGffEntries = oIt->second; // contains genes
-
-                    for (size_t i = 0; i < pGffEntries->size(); ++i) {
-                        GffEntry* pGeneEntry = pGffEntries->at(i);
-                    }
                     std::sort(pGffEntries->begin(), pGffEntries->end(), oSorter);
                 }
 
@@ -142,6 +185,73 @@ GffLoader::GffLoader(std::string& sFileName, std::vector<std::string>* pIgnoreFe
     }
 
     delete pFlattenLevel;
+}
+
+void GffLoader::run()
+{
+
+    uint32_t iReturn = this->prepareRun( this->m_pParser );
+
+    if (iReturn > 0)
+        return;
+
+    this->loadGTxFile();
+
+    if (m_pStats != NULL)
+    {
+
+        std::vector<std::string> *pStats = Utils<int, int>::readByLine(m_pStats);
+        std::vector<GffLoader::sStatisticElement *> *pStatPairs = NULL;
+        if (pStats != NULL) {
+            pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
+
+            for (uint32_t i = 0; i < pStats->size(); ++i) {
+                GffLoader::sStatisticElement *pElement = new GffLoader::sStatisticElement();
+
+                std::string sLine = pStats->at(i);
+
+                std::vector<std::string> vElems = Utils<int, int>::split(sLine, '\t');
+
+                pElement->sParent = vElems.at(0);
+                pElement->sBase = vElems.at(1);
+                pElement->iModifier = atoi(vElems.at(2).c_str());
+
+                pStatPairs->push_back(pElement);
+
+            }
+
+        }
+
+        this->printStatistics(pStatPairs);
+
+        if (pStats != NULL) {
+            pStats->clear();
+            delete pStats;
+
+
+            for (uint32_t i = 0; i < pStatPairs->size(); ++i)
+                delete pStatPairs->at(i);
+
+            delete pStatPairs;
+
+        }
+
+    }
+
+
+
+}
+
+GffLoader::GffLoader(CLParser* pParser)
+ : CLRunnable(pParser )
+{
+
+}
+
+GffLoader::GffLoader(std::string sArguments)
+ : CLRunnable( new CLParser( sArguments ) )
+{
+
 
 }
 
@@ -352,6 +462,10 @@ std::vector<GffEntry*>* GffLoader::createIntrons(std::vector<GffEntry*>* pTransc
 
 GffLoader::~GffLoader() {
 
+    delete m_pGTxFile;
+    delete m_pStats;
+    delete m_pPrefix;
+
     // TODO for each key in pSortedGffEntries, for each element in vector, delete
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
 
@@ -369,6 +483,8 @@ GffLoader::~GffLoader() {
     }
 
     delete pSortedGffEntries;
+
+    delete m_pIgnoreFeatures;
 }
 
 std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *pGenes) {

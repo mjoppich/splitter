@@ -13,19 +13,18 @@
 #include <inttypes.h>
 #include <string>
 #include <iostream>
+#include <utils/CLRunnable.h>
 
 class GffEntry;
 
-class GffLoader {
+class GffLoader : public CLRunnable {
 public:
-    GffLoader(
-            std::string& sFileName,
-            std::vector<std::string>* pIgnoreFeatures,
-            std::string* pPrefix = new std::string("")
-            );
+
+    GffLoader(CLParser* pParser);
+    GffLoader(std::string sArguments);
     virtual ~GffLoader();
 
-
+void run();
 
     struct sStatisticElement {
         std::string sParent;
@@ -114,6 +113,16 @@ protected:
 
 private:
 
+    bool checkConfig();
+    uint32_t prepareRun(CLParser* pParser);
+    void loadGTxFile();
+
+    std::string* m_pGTxFile;
+    std::string* m_pStats;
+    bool m_bValidate;
+    std::string* m_pPrefix;
+    std::vector<std::string>* m_pIgnoreFeatures;
+
     std::vector<GffEntry*>* createEntriesForSeqName(std::string* pSeqName);
     std::vector<GffEntry*>* createIntrons(std::vector<GffEntry*>* pTranscriptElements);
 
@@ -136,3 +145,4 @@ private:
 };
 
 #endif /* GFFLOADER_H_ */
+

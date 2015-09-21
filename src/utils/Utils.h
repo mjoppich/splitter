@@ -85,6 +85,20 @@ public:
         return vElems;
     }
 
+    static char** vec2char(std::vector<std::string> vArgs)
+    {
+        char** argv = (char**) malloc(sizeof(char*) * vArgs.size());
+
+        for (uint32_t i = 0; i < vArgs.size(); ++i)
+        {
+
+            argv[i] = (char*) malloc(sizeof(char) * vArgs.at(i).length());
+
+            memcpy(argv[i], vArgs.at(i).c_str(), vArgs.at(i).length());
+
+        }
+    }
+
 };
 
 #endif /* UTILS_H_ */

@@ -31,14 +31,22 @@ public:
     }
 
 protected:
+
+    virtual void* performAction(void* pInData) = 0;
+
     void run()
     {
 
         // this thread does not need highest priority!
         QThread::currentThread()->setPriority(QThread::LowestPriority);
 
-        this->threadFinished(0);
+        m_pData = this->performAction(m_pInput);
+
+        this->threadFinished(m_pData);
     }
+
+    void* m_pInput;
+    void* m_pData;
 
 public slots:
     void threadFinished(void* pData)
@@ -49,6 +57,23 @@ signals:
     void getThreadFinished(void* pData);
 
 private:
+
+};
+
+class GTXthread : public ApplicationThread
+{
+
+public:
+    GTXthread()
+        : ApplicationThread()
+    {
+
+    }
+
+    void* performAction(void* pInData)
+    {
+
+    }
 
 };
 
