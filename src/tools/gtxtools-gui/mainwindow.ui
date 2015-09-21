@@ -66,6 +66,27 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="oValidateBox">
+               <property name="text">
+                <string>Print Validation</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="oStatsBox">
+               <property name="text">
+                <string>Print Statistics</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="oButtonStats">
+               <property name="text">
+                <string>Load Stats File</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item row="0" column="0">
@@ -173,7 +194,7 @@
          </size>
         </property>
         <property name="title">
-         <string>Error Correction</string>
+         <string>gtx tools</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="0" column="1">
@@ -313,7 +334,7 @@
          <item row="0" column="0">
           <widget class="QGroupBox" name="groupBox_3">
            <property name="title">
-            <string>Start Error Correction</string>
+            <string>Start Run</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_3">
             <item>

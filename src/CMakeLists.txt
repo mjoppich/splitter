@@ -51,7 +51,8 @@ target_include_directories (gtxtools PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS gtxtools DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 install(TARGETS splitutils gtx DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
-install(FILES ${gtxlib_H} ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+install(FILES ${gtxlib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/gtxloader)
+install(FILES ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/utils)
 
 
 
@@ -78,7 +79,7 @@ IF("${CMAKE_SYSTEM}" MATCHES "Linux")
     target_include_directories (splitter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
     install(TARGETS splits DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
-    install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+    install(FILES ${splitslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/splitter)
     install(TARGETS splitter DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 
 

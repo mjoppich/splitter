@@ -9,8 +9,6 @@
 #include <QList>
 #include <QMimeData>
 
-#include <GffLoader.h>
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -34,9 +32,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QThread::currentThread()->setPriority(QThread::LowestPriority);
 
-    m_pThread = new ApplicationThread();
-
-    QObject::connect(m_pThread, SIGNAL(getThreadFinished(void*)), this , SLOT( getApplicationFinished(void*)) ), Qt::QueuedConnection );
+    m_pThread = new GTXthread( );
+    QObject::connect(m_pThread, SIGNAL(getThreadFinished(void*)), this , SLOT( getApplicationFinished(void*)), Qt::QueuedConnection );
 
     this->setAcceptDrops(true);
 
@@ -54,20 +51,26 @@ MainWindow::~MainWindow()
 void MainWindow::on_oButtonStartEC_clicked()
 {
 
-    // first check whether there's a config file loaded!
-    if (m_sConfigFile.compare("") == 0)
+    QString oGTFpart = QString("-gtx ");
+    oGTFpart = oGTFpart.append( m_sInputFile );
+
+    QString sCL = oGTFpart;
+
+    if (ui->oStatsBox->isChecked() == true)
     {
-        // empty config !
+        QString oStatsPart = QString("-stats ");
+        oStatsPart = oStatsPart.append(m_sStatsFile);
 
-        std::cout << "ERROR: No Config File Set" << std::endl;
-        m_sConfigFile = QString("/home/mjoppich/master/trunk/src/configs/dus12_16.config");
-
-       // return;
+        sCL = sCL.append(" ").append(oStatsPart);
     }
 
-    int iConfigs = 1;
-    const char** pConfigs = (const char**) malloc(sizeof(char*) * iConfigs);
-    pConfigs[0] = m_sConfigFile.toStdString().c_str();
+    if (ui->oValidateBox->isChecked() == true)
+    {
+        sCL = sCL.append(" --validate");
+    }
+
+
+    m_pThread->setCL(sCL);
 
     m_pThread->start();
 }
@@ -85,20 +88,8 @@ void MainWindow::receiveText(QString sString, QColor oColor)
 void MainWindow::getApplicationFinished(void* pData)
 {
 
-
-/*
-    this->ui->label_2->setText( QString::number(pStats->dSpentTime) );
-    this->ui->label_8->setText( QString::number(pStats->dSpentTimeCorrection) );
-    this->ui->label_9->setText( QString::number(pStats->iCorrectedReads) );
-    this->ui->label_10->setText( QString::number(pStats->iTrimmedReads) );
-    this->ui->label_11->setText( QString::number(pStats->iReadsInGraph) );
-    this->ui->label_12->setText( QString::number(pStats->iSmersInGraph) );
-    this->ui->label_22->setText( QString::number(pStats->iRoutesInGraph) );
-    this->ui->label_24->setText( QString::number(pStats->iWidthInGraph) );
-
-*/
-
-    free( pData );
+    if (pData != NULL)
+        free( pData );
 }
 
 void MainWindow::dropEvent(QDropEvent *oDropEvent)
@@ -106,13 +97,13 @@ void MainWindow::dropEvent(QDropEvent *oDropEvent)
     QList<QUrl> oUrls = oDropEvent->mimeData()->urls();
     foreach(QUrl oUrl, oUrls)
     {
-        m_sConfigFile = oUrl.path();
+        m_sInputFile = oUrl.path();
 
     }
 
-    std::cout << "File Dropped: " << m_sConfigFile.toStdString();
+    std::cout << "File Dropped: " << m_sInputFile.toStdString();
 
-    ui->label_13->setText( m_sConfigFile );
+    ui->label_13->setText( m_sInputFile );
 
     return;
 
@@ -125,21 +116,20 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *oDragEnterEvent)
 
 void MainWindow::on_oButtonConfig_clicked()
 {
-    m_sConfigFile = QFileDialog::getOpenFileName(this, tr("Open File"),
+    m_sInputFile = QFileDialog::getOpenFileName(this, tr("Open File"),
                                                      "",
                                                      tr("Files (*.*)"));
 
-    // if no file is loaded, we choose one by default for demonstration purposes
-        if (m_sConfigFile.compare("") == 0)
-    {
-        // empty config !
-        std::cerr << "ERROR: No Config File Set" << std::endl;
-        std::cout << "ERROR: Config Set to dus12_16" << std::endl;
+        ui->label_13->setText( m_sInputFile );
+}
 
-        m_sConfigFile = QString("/home/mjoppich/master/trunk/src/configs/dus12_16.config");
-    }
+void MainWindow::on_oButtonStats_clicked()
+{
+    m_sStatsFile = QFileDialog::getOpenFileName(this, tr("Open File"),
+                                                     "",
+                                                     tr("Files (*.*)"));
 
-        ui->label_13->setText( m_sConfigFile );
+        ui->label_15->setText( m_sStatsFile );
 }
 
 void MainWindow::on_pushButton_clicked()

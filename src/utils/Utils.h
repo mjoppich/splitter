@@ -92,14 +92,12 @@ public:
 
         for (uint32_t i = 0; i < vArgs.size(); ++i)
         {
-
-            argv[i] = (char*) malloc(sizeof(char) * vArgs.at(i).length());
-
             const size_t iStringLength = vArgs.at(i).length();
-            memcpy(argv[i], (void *) vArgs.at(i).c_str(), iStringLength);
 
+            argv[i] = (char*) malloc(sizeof(char) * (iStringLength+1));
 
-
+            strncpy(argv[i], vArgs.at(i).c_str(), iStringLength);
+            argv[i][iStringLength] = '\0';
         }
     }
 

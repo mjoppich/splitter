@@ -109,7 +109,7 @@ protected:
 
     std::vector<GffLoader::sStatisticElement *> *parseStatFile();
 
-    std::map<std::string, std::vector<GffEntry*>* >* pSortedGffEntries;
+    std::map<std::string, std::vector<GffEntry*>* >* pSortedGffEntries = NULL;
     std::vector<std::string>* m_pChromosomeNames;
     std::vector<GffEntry*>* m_pChromosomes;
 

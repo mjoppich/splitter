@@ -16,6 +16,11 @@ public:
 
     virtual void run() = 0;
 
+    void setParser(CLParser* pParser)
+    {
+        m_pParser = pParser;
+    }
+
 protected:
 
     CLParser* getConfig();

@@ -10,7 +10,8 @@
 #include <QObject>
 #include <QThread>
 
-
+#include <gtxloader/GffLoader.h>
+#include <utils/CLParser.h>
 
 namespace Ui {
 class MainWindow;
@@ -70,10 +71,29 @@ public:
 
     }
 
+    void setCL(QString sCL)
+    {
+        m_sCL = sCL;
+    }
+
     void* performAction(void* pInData)
     {
 
+        std::cerr << m_sCL.toStdString() << std::endl;
+
+        m_pParser = new CLParser(m_sCL.toStdString());
+        GffLoader* pLoader = new GffLoader(m_pParser);
+
+        pLoader->run();
+
+        return NULL;
+
     }
+
+private:
+
+    QString m_sCL;
+    CLParser* m_pParser;
 
 };
 
@@ -146,6 +166,7 @@ private slots:
 
     void on_oButtonStartEC_clicked();
     void on_oButtonConfig_clicked();
+    void on_oButtonStats_clicked();
     void getApplicationFinished(void *pData);
     void receiveText(QString sString, QColor oColor);
 
@@ -161,10 +182,14 @@ private:
 // controls
 
     bool m_bApplicationInProgress;
-    QString m_sConfigFile;
+
+    QString m_sInputFile;
+    QString m_sStatsFile;
+
+
     ExtendedBuffer* m_pBufferCout;
     ExtendedBuffer* m_pBufferCerr;
-    ApplicationThread* m_pThread;
+    GTXthread* m_pThread;
 };
 
 #endif // MAINWINDOW_H
