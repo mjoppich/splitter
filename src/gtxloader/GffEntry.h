@@ -84,7 +84,7 @@ public:
     void setAttribute(std::string &sKey, std::string sValue);
 
     std::string *getAttribute(std::string sKey);
-
+    void printAttribute(std::string* pAttrib = NULL);
     std::string *getID();
 
     GffEntry* getParent() {
@@ -165,7 +165,7 @@ public:
 
     GffEntry *addChildSimple(GffEntry *pCandidate);
 
-    GffEntry *addChild(GffEntry *pCandidate);
+    GffEntry *addChild(GffEntry *pCandidate, bool bValidate = false);
 
     static GenomicRegion* getBoundaries(std::vector<GffEntry*>* pElements) {
 

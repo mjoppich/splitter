@@ -117,6 +117,9 @@ uint32_t GffLoader::prepareRun(CLParser *pParser)
 
 void GffLoader::loadGTxFile()
 {
+
+    std::ios_base::sync_with_stdio (false);
+
     std::ifstream oInputStream;
     std::string sLine;
 
@@ -128,6 +131,9 @@ void GffLoader::loadGTxFile()
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
     oInputStream.open(m_pGTxFile->c_str());
 
+    if (oInputStream.eof())
+        return;
+
 #pragma omp parallel
     {
 
@@ -137,15 +143,18 @@ void GffLoader::loadGTxFile()
 
             std::cout << "Start read in for: " << *m_pGTxFile << " on " << omp_get_max_threads() << " threads" <<
             std::endl;
-            while (!oInputStream.eof()) {
 
-                std::getline(oInputStream, sLine);
+            std::string *pSeqName;
+            std::string *pFeature;
+            std::string *pPrefixedSeqName;
+
+            while (std::getline(oInputStream, sLine) ) {
 
                 if ((sLine[0] == '#') || (sLine[0] == '\n') || (sLine[0] == '\0'))
                     continue;
 
                 GffEntry *pEntry = new GffEntry(&sLine);
-                std::string *pSeqName = pEntry->getSeqName();
+                pSeqName = pEntry->getSeqName();
 
                 if (pSeqName == NULL)
                     continue;
@@ -154,11 +163,11 @@ void GffLoader::loadGTxFile()
                     m_pChromosomeNames->end())
                     m_pChromosomeNames->push_back(*pSeqName);
 
-                std::string *pPrefixedSeqName = new std::string(m_pPrefix->c_str());
+                pPrefixedSeqName = new std::string(m_pPrefix->c_str());
                 pPrefixedSeqName->append(pSeqName->c_str());
                 pEntry->setSeqName(pPrefixedSeqName);
 
-                std::string *pFeature = pEntry->getFeature();
+                pFeature = pEntry->getFeature();
 
                 if (m_pIgnoreFeatures != NULL) {
                     std::vector<std::string>::iterator oSIt = std::find(m_pIgnoreFeatures->begin(),
@@ -176,8 +185,14 @@ void GffLoader::loadGTxFile()
 
                     // if size of intermediate vector too large -> add stuff in parallel
 
-                    if (pGenes->size() > 50) {
-                        pGenes = this->addGenesInParallel(pGenes);
+                    if (pGenes->size() > 150) {
+
+#pragma omp task untied firstprivate(pGenes)
+                        {
+                            this->addGenesInParallel(pGenes);
+                        }
+
+                        pGenes = new std::vector<GffEntry*>();
                     }
                 }
 
@@ -185,59 +200,48 @@ void GffLoader::loadGTxFile()
                 pGenes->push_back(pEntry);
 
             }
+#pragma omp task untied firstprivate(pGenes)
+            {
+                this->addGenesInParallel(pGenes);
+            }
 
-            pGenes = this->addGenesInParallel(pGenes);
-
-            delete pGenes;
+#pragma omp taskwait
+            std::string* pFlattenLevel = new std::string("gene");
 
             // now sort the single vectors
-            // TODO this is nicely parallelisable
             for (oIt = pSortedGffEntries->begin(); oIt != pSortedGffEntries->end(); ++oIt) {
 
-#pragma omp task firstprivate(oIt)
+#pragma omp task untied firstprivate(oIt, pFlattenLevel)
                 {
 
-                    GffEntry::sSortEntriesAsc oSorter;
+                    //GffEntry::sSortEntriesAsc oSorter;
+                    //std::sort(pGffEntries->begin(), pGffEntries->end(), oSorter);
 
+                    std::string sChromName = oIt->first;
                     std::vector<GffEntry*>* pGffEntries = oIt->second; // contains genes
-                    std::sort(pGffEntries->begin(), pGffEntries->end(), oSorter);
+                    GffEntry* pChromosome = new GffEntry(sChromName, "splitter", "chromosome", 1, 1);
+                    pChromosome->addChildren(pGffEntries);
+                    pChromosome->sortChildren(NULL);
+
+                    uint32_t iEnd = pChromosome->getMaxLocation();
+                    pChromosome->setEnd(iEnd);
+                    pChromosome->flatten(pFlattenLevel);
+
+#pragma omp critical
+                    {
+                        m_pChromosomes->push_back(pChromosome);
+                    }
                 }
 
             }
 
+            delete pFlattenLevel;
+
+
         }
 
     }
 
-    std::string* pFlattenLevel = new std::string("gene");
-
-    std::vector<std::string>::iterator oJt;
-
-
-    uint32_t i = 0;
-#pragma omp parallel for schedule(dynamic,1)
-    for (i = 0; i < m_pChromosomeNames->size(); ++i) {
-        std::string sChromName = m_pChromosomeNames->at(i);
-
-        std::vector<GffEntry*>* pGffEntries = this->getEntriesForSeqName(&sChromName);
-
-        GffEntry* pChromosome = new GffEntry(sChromName, "splitter", "chromosome", 1, 1);
-        pChromosome->addChildren(pGffEntries);
-        pChromosome->sortChildren(NULL);
-
-        uint32_t iEnd = pChromosome->getMaxLocation();
-        pChromosome->setEnd(iEnd);
-
-        pChromosome->flatten(pFlattenLevel);
-
-#pragma omp critical
-        {
-            m_pChromosomes->push_back(pChromosome);
-        }
-
-    }
-
-    delete pFlattenLevel;
 }
 
 void GffLoader::run()
@@ -352,29 +356,81 @@ void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pSta
 
     size_t c = 0;
     uint32_t iMax = m_pChromosomes->size();
+    uint32_t iWorkPackageSize = 0;
+    uint32_t iWorkPackageStart = 0;
+    uint32_t iWorkPackageEnd = 0;
 
-#pragma omp parallel for schedule(dynamic,1) shared(iMax, pResults, pStatPairs)
-    for (c = 0; c < iMax; ++c) {
+#pragma omp parallel //for schedule(dynamic,1) shared(iMax, pResults, pStatPairs)
+    {
+#pragma omp single
+        {
+            for (c = 0; c < iMax; ++c) {
 
-        m_pChromosomes->at(c)->printHierarchy(0);
+                //m_pChromosomes->at(c)->printHierarchy(0);
+                GffEntry* pChrom = m_pChromosomes->at(c);
+                uint32_t iChildren = pChrom->getChildren()->size();
+                iWorkPackageSize += iChildren;
 
-        for (uint32_t i = 0; i < pStatPairs->size(); ++i) {
-            GffEntry* pChrom = m_pChromosomes->at(c);
+                if (iWorkPackageSize > 200)
+                {
+
+                    iWorkPackageEnd = c;
+
+#pragma omp task firstprivate(iWorkPackageStart, iWorkPackageEnd, pStatPairs, pResults)
+                    {
+                        for (uint32_t c = iWorkPackageStart; c < iWorkPackageEnd+1; ++c)
+                        {
+                            GffEntry* pChrom = m_pChromosomes->at(c);
+
+                            for (uint32_t i = 0; i < pStatPairs->size(); ++i) {
+
+                                uint32_t iIndex = c * pStatPairs->size() + i;
+
+                                sStatisticElement* pElement = pStatPairs->at(i);
+
+                                pResults[iIndex] = new sStatisticResult();
+
+                                sStatisticResult* pResult = pResults[iIndex];
+                                pChrom->getStatistics(pElement, pResult);
+                                pResult->prepareResults();
+
+                            }
+                        }
+
+                    }
+
+                    iWorkPackageSize = 0;
+                    iWorkPackageStart = c+1;
+                }
 
 
+            }
 
-            uint32_t iIndex = c * pStatPairs->size() + i;
+#pragma omp task firstprivate(iWorkPackageStart, iMax, pStatPairs, pResults)
+            {
+                for (uint32_t c = iWorkPackageStart; c < iMax; ++c)
+                {
+                    GffEntry* pChrom = m_pChromosomes->at(c);
 
-            sStatisticElement* pElement = pStatPairs->at(i);
+                    for (uint32_t i = 0; i < pStatPairs->size(); ++i) {
 
-            pResults[iIndex] = new sStatisticResult();
+                        uint32_t iIndex = c * pStatPairs->size() + i;
 
-            sStatisticResult* pResult = pResults[iIndex];
-            pChrom->getStatistics(pElement, pResult);
-            pResult->prepareResults();
+                        sStatisticElement* pElement = pStatPairs->at(i);
 
+                        pResults[iIndex] = new sStatisticResult();
+
+                        sStatisticResult* pResult = pResults[iIndex];
+                        pChrom->getStatistics(pElement, pResult);
+                        pResult->prepareResults();
+
+                    }
+                }
+
+            }
         }
     }
+
 
     for (c = 0; c < iMax; ++c) {
         GffEntry* pChrom = m_pChromosomes->at(c);
@@ -515,10 +571,12 @@ GffLoader::~GffLoader() {
 
 std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *pGenes) {
 
-#pragma omp task firstprivate(pGenes)
+
     {
 
         GffEntry *pCurrentGene = NULL;
+
+        std::vector<GffEntry*> vFoundGenes;
 
         for (uint32_t i = 0; i < pGenes->size(); ++i) {
 
@@ -526,11 +584,8 @@ std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *
 
             if (pProcEntry->getFeature()->compare("gene") == 0) {
                 pCurrentGene = pProcEntry;
-#pragma omp critical
-                {
-                    std::vector<GffEntry *> *pGffEntries = createEntriesForSeqName(pProcEntry->getSeqName());
-                    pGffEntries->push_back(pProcEntry);
-                }
+
+                vFoundGenes.push_back(pProcEntry);
 
             } else {
 
@@ -541,10 +596,23 @@ std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *
 
         }
 
+        for (uint32_t i = 0; i < vFoundGenes.size(); ++i)
+        {
+
+            GffEntry* pProcEntry = vFoundGenes.at(i);
+#pragma omp taskyield
+#pragma omp critical
+            {
+                std::vector<GffEntry *> *pGffEntries = createEntriesForSeqName(pProcEntry->getSeqName());
+                pGffEntries->push_back(pProcEntry);
+            }
+
+        }
+
         delete pGenes;
 
     }
 
-    return new std::vector<GffEntry *>();
+    return NULL;
 
 }
