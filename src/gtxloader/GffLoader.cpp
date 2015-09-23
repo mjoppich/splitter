@@ -123,10 +123,10 @@ void GffLoader::loadGTxFile()
     std::ifstream oInputStream;
     std::string sLine;
 
+
     pSortedGffEntries = new std::map<std::string, std::vector<GffEntry*>* >();
     m_pChromosomeNames = new std::vector<std::string>();
     m_pChromosomes = new std::vector<GffEntry*>();
-
 
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
     oInputStream.open(m_pGTxFile->c_str());
@@ -144,79 +144,59 @@ void GffLoader::loadGTxFile()
             std::cout << "Start read in for: " << *m_pGTxFile << " on " << omp_get_max_threads() << " threads" <<
             std::endl;
 
-            std::string *pSeqName;
-            std::string *pFeature;
-            std::string *pPrefixedSeqName;
+            std::vector< std::string >* pLinePackage = new std::vector<std::string>();
 
             while (std::getline(oInputStream, sLine) ) {
 
                 if ((sLine[0] == '#') || (sLine[0] == '\n') || (sLine[0] == '\0'))
                     continue;
 
-                GffEntry *pEntry = new GffEntry(&sLine);
-                pSeqName = pEntry->getSeqName();
+                /*
+                 *
+                 * does it suffice to search for '\tgene\t' ?
+                 *
+                 *
+                 */
 
-                if (pSeqName == NULL)
-                    continue;
+                if (sLine.find( "\tgene\t" ) != std::string::npos )
+                {
 
-                if (std::find(m_pChromosomeNames->begin(), m_pChromosomeNames->end(), *pSeqName) ==
-                    m_pChromosomeNames->end())
-                    m_pChromosomeNames->push_back(*pSeqName);
+                    if (pLinePackage->size() > 200)
+                    {
 
-                pPrefixedSeqName = new std::string(m_pPrefix->c_str());
-                pPrefixedSeqName->append(pSeqName->c_str());
-                pEntry->setSeqName(pPrefixedSeqName);
-
-                pFeature = pEntry->getFeature();
-
-                if (m_pIgnoreFeatures != NULL) {
-                    std::vector<std::string>::iterator oSIt = std::find(m_pIgnoreFeatures->begin(),
-                                                                        m_pIgnoreFeatures->end(), *pFeature);
-
-                    // gff entry feature is in ignore features list
-                    if (oSIt != m_pIgnoreFeatures->end()) {
-                        delete pEntry;
-                        continue;
-                    }
-
-                }
-
-                if (pFeature->compare("gene") == 0) {
-
-                    // if size of intermediate vector too large -> add stuff in parallel
-
-                    if (pGenes->size() > 150) {
-
-#pragma omp task untied firstprivate(pGenes)
+#pragma omp task untied firstprivate(pLinePackage)
                         {
-                            this->addGenesInParallel(pGenes);
+                            this->loadLines( pLinePackage );
+
+                            delete pLinePackage;
                         }
 
-                        pGenes = new std::vector<GffEntry*>();
+                        pLinePackage = new std::vector<std::string>();
+                        pLinePackage->reserve(250);
                     }
                 }
 
-                // add entry to current gene
-                pGenes->push_back(pEntry);
+                pLinePackage->push_back( sLine );
+
+                continue;
 
             }
-#pragma omp task untied firstprivate(pGenes)
+#pragma omp task untied firstprivate(pLinePackage)
             {
-                this->addGenesInParallel(pGenes);
+                this->loadLines( pLinePackage );
+
+                delete pLinePackage;
+
             }
 
 #pragma omp taskwait
 
-            std::string* pFlattenLevel = NULL;
 
             // now sort the single vectors
             for (oIt = pSortedGffEntries->begin(); oIt != pSortedGffEntries->end(); ++oIt) {
 
-#pragma omp task untied firstprivate(oIt, pFlattenLevel)
+#pragma omp task untied firstprivate(oIt)
                 {
-
-                    //GffEntry::sSortEntriesAsc oSorter;
-                    //std::sort(pGffEntries->begin(), pGffEntries->end(), oSorter);
 
                     std::string sChromName = oIt->first;
                     std::vector<GffEntry*>* pGffEntries = oIt->second; // contains genes
@@ -226,7 +206,6 @@ void GffLoader::loadGTxFile()
 
                     uint32_t iEnd = pChromosome->getMaxLocation();
                     pChromosome->setEnd(iEnd);
-                    //pChromosome->flatten(pFlattenLevel);
 
 #pragma omp critical
                     {
@@ -622,5 +601,89 @@ std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *
     }
 
     return NULL;
+
+}
+
+void GffLoader::loadLines(std::vector<std::string>* pLines) {
+
+    std::string *pSeqName;
+    std::string *pFeature;
+    std::string *pPrefixedSeqName;
+
+    GffEntry* pCurrentGene = NULL;
+    std::vector< GffEntry* > vGenes;
+
+    for (uint32_t i = 0; i < pLines->size(); ++i)
+    {
+
+        std::string sLine = pLines->at(i);
+
+        GffEntry *pEntry = new GffEntry(&sLine);
+        pSeqName = pEntry->getSeqName();
+
+        if (pSeqName == NULL)
+        {
+            delete pEntry;
+            continue;
+        }
+
+        pFeature = pEntry->getFeature();
+
+        if (m_pIgnoreFeatures != NULL) {
+            bool bIsIgnoreFeature = (m_pIgnoreFeatures->end() != std::find(m_pIgnoreFeatures->begin(), m_pIgnoreFeatures->end(), *pFeature));
+
+            // gff entry feature is in ignore features list
+            if ( bIsIgnoreFeature ) {
+                delete pEntry;
+                continue;
+            }
+
+        }
+
+        pPrefixedSeqName = new std::string(m_pPrefix->c_str());
+        pPrefixedSeqName->append(pSeqName->c_str());
+        pEntry->setSeqName(pPrefixedSeqName);
+
+#pragma omp critical
+        {
+            if (std::find(m_pChromosomeNames->begin(), m_pChromosomeNames->end(), *(pEntry->getSeqName())) == m_pChromosomeNames->end())
+            {
+                m_pChromosomeNames->push_back( *(pEntry->getSeqName()) );
+            }
+        }
+
+
+
+        if (pEntry->getFeature()->compare("gene") == 0) {
+            pCurrentGene = pEntry;
+            vGenes.push_back(pCurrentGene);
+        } else {
+
+            pCurrentGene->addChild(pEntry);
+            continue;
+
+        }
+
+    }
+
+
+    std::string* pFlattenLevel = new std::string("gene");
+
+    for (uint32_t i = 0; i < vGenes.size(); ++i)
+    {
+
+        GffEntry* pProcEntry = vGenes.at(i);
+
+        pProcEntry->flatten(pFlattenLevel);
+
+#pragma omp taskyield
+#pragma omp critical
+        {
+            std::vector<GffEntry *> *pGffEntries = createEntriesForSeqName(pProcEntry->getSeqName());
+            pGffEntries->push_back(pProcEntry);
+        }
+
+    }
+
 
 }

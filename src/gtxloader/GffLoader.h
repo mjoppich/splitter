@@ -107,11 +107,14 @@ void run();
 
 protected:
 
+    void loadLines(std::vector<std::string>* pLines);
+
     std::vector<GffLoader::sStatisticElement *> *parseStatFile();
 
     std::map<std::string, std::vector<GffEntry*>* >* pSortedGffEntries = NULL;
-    std::vector<std::string>* m_pChromosomeNames;
     std::vector<GffEntry*>* m_pChromosomes;
+    std::vector<std::string>* m_pIgnoreFeatures;
+    std::vector<std::string>* m_pChromosomeNames;
 
 private:
 
@@ -123,7 +126,6 @@ private:
     std::string* m_pStats;
     bool m_bValidate;
     std::string* m_pPrefix;
-    std::vector<std::string>* m_pIgnoreFeatures;
 
     std::vector<GffEntry*>* createEntriesForSeqName(std::string* pSeqName);
     std::vector<GffEntry*>* createIntrons(std::vector<GffEntry*>* pTranscriptElements);
