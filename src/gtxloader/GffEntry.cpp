@@ -706,7 +706,11 @@ GffEntry *GffEntry::addChild(GffEntry *pCandidate, bool bValidate) {
             GffEntry *pChild = *oIt;
 
             if (!pChild->contains(pCandidate))
+            {
                 continue;
+
+            }
+
 
             // first try ensembl gtf version
 
@@ -733,36 +737,114 @@ GffEntry *GffEntry::addChild(GffEntry *pCandidate, bool bValidate) {
 
         }
 
-        // if we arrive here, no insertion yet
+        // if we arrive here, no insertion yet. Try using GFF3 format:
 
         std::string *pCandidateParentID = pCandidate->getAttribute("Parent");
 
-        std::string *pAttrib = new std::string("ID");
-        GffEntry *pParent = this->findChildWithAttribute(pAttrib, pCandidateParentID);
-        delete pAttrib;
+        if (pCandidateParentID != NULL)
+        {
 
-        // try gtf maker version
-        if (pParent != NULL) {
-            return pParent->addChildSimple(pCandidate);
+
+            std::vector<std::string> vParents = Utils::split(*pCandidateParentID, ',');
+
+            std::string *pAttrib = new std::string("ID");
+            for (uint32_t i = 0; i < vParents.size(); ++i)
+            {
+
+                GffEntry *pParent = this->findChildWithAttribute(pAttrib, &(vParents.at(i)));
+
+                // try gtf maker version
+                if (pParent != NULL) {
+                    return pParent->addChildSimple(pCandidate);
+                } else {
+
+                    if (bValidate)
+                    {
+                        std::cerr << "No Parent found for PARENT ID " << vParents.at(i) << std::endl;
+                    }
+
+                }
+            }
+
+            delete pAttrib;
+
         }
+
 
     }
 
-    // either same level, or no child found
+    bool bCandidateContainsChild = false;
+    // check whether candidate includes some child!
+    for (oIt = m_pChildren->rbegin(); oIt < m_pChildren->rend(); ++oIt) {
 
+        GffEntry *pChild = *oIt;
+
+        if (pChild->getFeature()->compare(*pCandidate->getFeature()) == 0)
+            continue;
+
+        if (pCandidate->contains(pChild))
+        {
+
+            bCandidateContainsChild = true;
+            break;
+        }
+    }
+
+    if (bCandidateContainsChild)
+    {
+
+        if (bValidate)
+        {
+            std::cerr << "Candidate includes child!" << std::endl;
+            this->printHierarchy(0, 10);
+
+        }
+
+        std::vector< GffEntry* >::iterator oForwardIt;
+        for ( oForwardIt = m_pChildren->begin(); oForwardIt != m_pChildren->end(); )
+        {
+            GffEntry *pChild = *oForwardIt;
+
+            if (pChild->getFeature()->compare(*pCandidate->getFeature()) == 0)
+            {
+                ++oForwardIt;
+                continue;
+            }
+
+
+            if (pCandidate->contains(pChild))
+            {
+                oForwardIt = m_pChildren->erase(oForwardIt);
+
+                pCandidate->addChildSimple( pChild );
+            } else {
+                ++oForwardIt;
+            }
+
+        }
+
+        pCandidate->setParent(this);
+        m_pChildren->push_back( pCandidate );
+    }
+
+
+
+    // either same level, or no child found
     if (bSameLevelFound == false) {
 
 
         if (bValidate)
         {
             std::string *pID = pCandidate->getID();
-            std::cerr << "no location found for: " << *(pCandidate->getFeature()) << " " << ((pID != NULL) ? *pID : "") <<
+            std::cerr << "no parent/location found for: " << *(pCandidate->getFeature()) << " " << ((pID != NULL) ? *pID : "") <<
             std::endl;
         }
 
         return this->addChildSimple(pCandidate);
     }
 
+
+    // same level
     pCandidate->setParent(this);
     m_pChildren->push_back(pCandidate);
 
@@ -819,10 +901,8 @@ GffEntry *GffEntry::addChildSimple(GffEntry *pCandidate) {
     std::string *pChildAttrib = NULL;
     GffEntry *pReturn = NULL;
 
-    bool bSameLevelFound = true;
+    bool bSameLevelFound = false;
     std::vector< GffEntry*>::reverse_iterator oIt = m_pChildren->rbegin();
-
-
 
     for (; oIt < m_pChildren->rend(); ++oIt) {
         GffEntry *pChild = (*oIt);

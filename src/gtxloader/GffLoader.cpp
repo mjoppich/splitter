@@ -206,7 +206,8 @@ void GffLoader::loadGTxFile()
             }
 
 #pragma omp taskwait
-            std::string* pFlattenLevel = new std::string("gene");
+
+            std::string* pFlattenLevel = NULL;
 
             // now sort the single vectors
             for (oIt = pSortedGffEntries->begin(); oIt != pSortedGffEntries->end(); ++oIt) {
@@ -225,7 +226,7 @@ void GffLoader::loadGTxFile()
 
                     uint32_t iEnd = pChromosome->getMaxLocation();
                     pChromosome->setEnd(iEnd);
-                    pChromosome->flatten(pFlattenLevel);
+                    //pChromosome->flatten(pFlattenLevel);
 
 #pragma omp critical
                     {
@@ -235,7 +236,7 @@ void GffLoader::loadGTxFile()
 
             }
 
-            delete pFlattenLevel;
+            //delete pFlattenLevel;
 
 
         }
@@ -596,10 +597,15 @@ std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *
 
         }
 
+        std::string* pFlattenLevel = new std::string("gene");
+
         for (uint32_t i = 0; i < vFoundGenes.size(); ++i)
         {
 
             GffEntry* pProcEntry = vFoundGenes.at(i);
+
+            pProcEntry->flatten(pFlattenLevel);
+
 #pragma omp taskyield
 #pragma omp critical
             {
@@ -608,6 +614,8 @@ std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *
             }
 
         }
+
+        delete pFlattenLevel;
 
         delete pGenes;
 
