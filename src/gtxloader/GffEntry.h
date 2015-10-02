@@ -29,6 +29,8 @@ public:
     GffEntry(GffEntry* pEntry, bool bCopyAttributes);
     GffEntry(std::string sSeqName, std::string sSource, std::string sFeature, uint32_t iStart, uint32_t iEnd);
 
+    static std::vector< std::string* >* g_pFeatures;
+
     struct sSortEntriesAsc {
 
         bool operator()(GffEntry* pElem1, GffEntry* pElem2) {
@@ -76,6 +78,36 @@ public:
     }
 
     void setFeature(std::string* pNewFeature);
+
+    std::string* getFeatureString( std::string* pNewFeature)
+    {
+        for (uint32_t i = 0; i < g_pFeatures->size(); ++i)
+            if (g_pFeatures->at(i)->compare(*pNewFeature) == 0)
+                return g_pFeatures->at(i);
+        std::string* pFeature = NULL;
+
+#pragma omp critical
+        {
+
+            // has it been inserted in the mean time?
+            for (uint32_t i = 0; i < g_pFeatures->size(); ++i)
+                if (g_pFeatures->at(i)->compare(*pNewFeature) == 0)
+                {
+                    pFeature = g_pFeatures->at(i);
+                    break;
+                }
+
+
+            if (pFeature == NULL)
+            {
+                pFeature = new std::string(*pNewFeature);
+                g_pFeatures->push_back( pFeature );
+            }
+
+        }
+
+        return pFeature;
+    }
 
     void setSource(std::string* pNewSource) {
         m_pSource = pNewSource;

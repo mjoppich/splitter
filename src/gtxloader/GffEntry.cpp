@@ -63,8 +63,8 @@ GffEntry::GffEntry(std::string* pLine, uint8_t cSep)
 
 void GffEntry::parseLine(std::string* pLine, uint8_t cSep) {
 
-    uint32_t iOldFound = 0;
-    uint32_t iFound = pLine->find(cSep, 0);
+    size_t iOldFound = 0;
+    size_t iFound = pLine->find(cSep, 0);
     m_pSeqName = new std::string(*pLine, iOldFound, iFound - iOldFound);
     this->checkForEmptyValue(m_pSeqName);
 
@@ -75,7 +75,9 @@ void GffEntry::parseLine(std::string* pLine, uint8_t cSep) {
 
     iOldFound = iFound + 1;
     iFound = pLine->find(cSep, iOldFound);
-    m_pFeature = new std::string(*pLine, iOldFound, iFound - iOldFound);
+
+    std::string sFeature = std::string(*pLine, iOldFound, iFound - iOldFound);
+    this->setFeature( &( sFeature ) ) ;
     this->checkForEmptyValue(m_pFeature);
 
 
@@ -185,8 +187,11 @@ void GffEntry::initialize() {
 
 }
 
+std::vector<std::string*>* GffEntry::g_pFeatures = new std::vector<std::string*>();
+
 void GffEntry::setFeature(std::string* pNewFeature) {
-    m_pFeature = pNewFeature;
+
+    m_pFeature = this->getFeatureString(pNewFeature);
 }
 
 GffEntry::~GffEntry() {
