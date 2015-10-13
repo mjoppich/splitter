@@ -141,8 +141,8 @@ public:
         return iStrandInfo;
     }
 
-    // flattens entry at when feature == flattenlevel
-    void flatten(std::string* pFlattenLevel);
+    // flattens entry at when feature == flattenlevel for childlevel
+    void flatten(std::string* pFlattenLevel, std::string* pChildLevel);
 
     GffEntry* getRegion(uint32_t iPosition) {
 
@@ -201,7 +201,7 @@ public:
 
     static GenomicRegion* getBoundaries(std::vector<GffEntry*>* pElements) {
 
-        uint32_t iStart = -1;
+        uint32_t iStart = (uint32_t) -1;
         uint32_t iEnd = 0;
 
 
@@ -252,8 +252,6 @@ public:
     uint32_t getStatistics(GffLoader::sStatisticElement* pElement, GffLoader::sStatisticResult* pResults);
 
     bool hasChild(std::string *pFeature);
-
-
 
     // getCount("gene", "transcript", 0)
 

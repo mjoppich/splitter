@@ -17,12 +17,25 @@
 #include <malloc.h>
 #include <omp.h>
 
-std::vector<GffLoader::sStatisticElement *> *GffLoader::parseStatFile() {
+GffLoader::GffLoader(CLParser* pParser)
+        : CLRunnable( pParser )
+{
+
+}
+
+GffLoader::GffLoader(std::string sArguments)
+        : CLRunnable( new CLParser( sArguments ) )
+{
+
+
+}
+
+std::vector<GffLoader::sStatisticElement *> *GffLoader::parseStatFile(std::string* pStatFileLocation) {
 
     std::vector<GffLoader::sStatisticElement *> *pStatPairs = NULL;
-    if (m_pStats != NULL) {
+    if (pStatFileLocation != NULL) {
 
-        std::vector<std::string> *pStats = Utils::readByLine(m_pStats);
+        std::vector<std::string> *pStats = Utils::readByLine(pStatFileLocation);
         pStatPairs = new std::vector<GffLoader::sStatisticElement *>();
 
         for (uint32_t i = 0; i < pStats->size(); ++i) {
@@ -237,7 +250,7 @@ void GffLoader::run()
     if (m_pParser->isSet("stats") == true)
     {
 
-        std::vector<GffLoader::sStatisticElement *> *pStatPairs = this->parseStatFile();
+        std::vector<GffLoader::sStatisticElement *> *pStatPairs = this->parseStatFile( m_pStats );
 
         this->printStatistics(pStatPairs);
 
@@ -256,19 +269,6 @@ void GffLoader::run()
 
 }
 
-GffLoader::GffLoader(CLParser* pParser)
-        : CLRunnable( pParser )
-{
-
-}
-
-GffLoader::GffLoader(std::string sArguments)
-        : CLRunnable( new CLParser( sArguments ) )
-{
-
-
-}
-
 std::vector<GffEntry*>* GffLoader::createEntriesForSeqName(std::string* pSeqName) {
     std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
     oIt = pSortedGffEntries->find(pSeqName->c_str());
@@ -281,17 +281,6 @@ std::vector<GffEntry*>* GffLoader::createEntriesForSeqName(std::string* pSeqName
 
         return pGffEntries;
     }
-
-    return oIt->second;
-
-}
-
-std::vector<GffEntry*>* GffLoader::getEntriesForSeqName(std::string* pSeqName) {
-    std::map<std::string, std::vector<GffEntry*>* >::iterator oIt;
-    oIt = pSortedGffEntries->find(pSeqName->c_str());
-
-    if (oIt == pSortedGffEntries->end())
-        return NULL;
 
     return oIt->second;
 
@@ -322,13 +311,9 @@ std::vector<std::string>* GffLoader::getSeqNames() {
     }
 
     return pSeqNames;
-
 }
 
 void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pStatPairs) {
-
-    std::vector< uint32_t* > vStatValues;
-    std::vector< uint32_t* > vStatInstances;
 
     uint32_t iResultSets = m_pChromosomes->size() * pStatPairs->size();
     sStatisticResult** pResults = (sStatisticResult**) calloc(sizeof (sStatisticResult*), iResultSets);
@@ -340,7 +325,7 @@ void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pSta
     uint32_t iWorkPackageStart = 0;
     uint32_t iWorkPackageEnd = 0;
 
-#pragma omp parallel //for schedule(dynamic,1) shared(iMax, pResults, pStatPairs)
+#pragma omp parallel
     {
 #pragma omp single
         {
@@ -451,71 +436,6 @@ void GffLoader::printStatistics(std::vector<GffLoader::sStatisticElement*>* pSta
 
 }
 
-std::vector<GffEntry*>* GffLoader::createIntrons(std::vector<GffEntry*>* pTranscriptElements) {
-
-    /*
-     * at [0] is always the transcript
-     *
-     *
-     */
-    if (pTranscriptElements->size() <= 1)
-        return NULL;
-
-    std::vector<GffEntry*>* pIntrons = new std::vector<GffEntry*>();
-
-    GffEntry* pTranscript = pTranscriptElements->at(0);
-
-    GffEntry* pOldExon = pTranscriptElements->at(1);
-
-    if (pTranscript->getStart() != pOldExon->getStart()) {
-        // add new intron
-        GffEntry* pIntron = new GffEntry(pTranscript, true);
-
-        pIntron->setFeature(new std::string("intron"));
-
-        pIntron->setStart(pTranscript->getStart());
-        pIntron->setEnd(pOldExon->getStart() - 1);
-
-        pIntrons->push_back(pIntron);
-    }
-
-    uint32_t iNext = 2;
-    GffEntry* pExon = NULL;
-    while (iNext < pTranscriptElements->size()) {
-        pExon = pTranscriptElements->at(2);
-
-        uint32_t iDist = pExon->getStart() - pOldExon->getEnd();
-
-        if (iDist > 1) {
-            GffEntry* pIntron = new GffEntry(pTranscript, true);
-
-            pIntron->setFeature(new std::string("intron"));
-
-            pIntron->setStart(pOldExon->getEnd() + 1);
-            pIntron->setEnd(pExon->getStart() - 1);
-
-            pIntrons->push_back(pIntron);
-        }
-
-        pOldExon = pExon;
-
-    }
-
-    if (pOldExon->getEnd() != pTranscript->getEnd()) {
-        GffEntry* pIntron = new GffEntry(pTranscript, true);
-
-        pIntron->setFeature(new std::string("intron"));
-
-        pIntron->setStart(pOldExon->getEnd() + 1);
-        pIntron->setEnd(pTranscript->getEnd());
-
-        pIntrons->push_back(pIntron);
-    }
-
-    return pIntrons;
-
-}
-
 GffLoader::~GffLoader() {
 
     delete m_pGTxFile;
@@ -547,61 +467,6 @@ GffLoader::~GffLoader() {
 
     if (m_pIgnoreFeatures != NULL)
         delete m_pIgnoreFeatures;
-}
-
-std::vector<GffEntry *> *GffLoader::addGenesInParallel(std::vector<GffEntry *> *pGenes) {
-
-
-    {
-
-        GffEntry *pCurrentGene = NULL;
-
-        std::vector<GffEntry*> vFoundGenes;
-
-        for (uint32_t i = 0; i < pGenes->size(); ++i) {
-
-            GffEntry *pProcEntry = pGenes->at(i);
-
-            if (pProcEntry->getFeature()->compare("gene") == 0) {
-                pCurrentGene = pProcEntry;
-
-                vFoundGenes.push_back(pProcEntry);
-
-            } else {
-
-                pCurrentGene->addChild(pProcEntry);
-                continue;
-
-            }
-
-        }
-
-        std::string* pFlattenLevel = new std::string("gene");
-
-        for (uint32_t i = 0; i < vFoundGenes.size(); ++i)
-        {
-
-            GffEntry* pProcEntry = vFoundGenes.at(i);
-
-            pProcEntry->flatten(pFlattenLevel);
-
-#pragma omp taskyield
-#pragma omp critical
-            {
-                std::vector<GffEntry *> *pGffEntries = createEntriesForSeqName(pProcEntry->getSeqName());
-                pGffEntries->push_back(pProcEntry);
-            }
-
-        }
-
-        delete pFlattenLevel;
-
-        delete pGenes;
-
-    }
-
-    return NULL;
-
 }
 
 void GffLoader::loadLines(std::vector<std::string>* pLines) {
@@ -668,13 +533,14 @@ void GffLoader::loadLines(std::vector<std::string>* pLines) {
 
 
     std::string* pFlattenLevel = new std::string("gene");
+    std::string* pChildLevel = new std::string("exon");
 
     for (uint32_t i = 0; i < vGenes.size(); ++i)
     {
 
         GffEntry* pProcEntry = vGenes.at(i);
 
-        pProcEntry->flatten(pFlattenLevel);
+        pProcEntry->flatten(pFlattenLevel, pChildLevel);
 
 #pragma omp taskyield
 #pragma omp critical
@@ -685,5 +551,19 @@ void GffLoader::loadLines(std::vector<std::string>* pLines) {
 
     }
 
+    delete pFlattenLevel;
+    delete pChildLevel;
 
+
+}
+
+void GffLoader::printStatisticResult(std::string sPrefix, sStatisticElement* pElement, sStatisticResult* pResult) {
+    char cDel = '\t';
+
+    pResult->prepareResults();
+
+    if (sPrefix.size() > 0 )
+        std::cout << sPrefix << cDel;
+
+    std::cout << pElement->sParent << cDel << pElement->sBase << cDel << (char)(48+pElement->iModifier) << cDel << pResult->iParentCount << cDel << pResult->iBaseCount << cDel << pResult->fAvgCount << cDel << pResult->iLengthBase << cDel << pResult->fAvgLength << std::endl;
 }

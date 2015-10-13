@@ -35,14 +35,13 @@ file(GLOB gtxlib_SRC
 )
 add_library(gtx ${gtxlib_SRC} ${gtxlib_H})
 
-
-
-
 TARGET_LINK_LIBRARIES(gtx splitutils)
 
 ADD_EXECUTABLE(gtxtools "tools/gtxtools/main.cpp")
+ADD_EXECUTABLE(splitprocess "tools/splitprocess/main.cpp")
 
 TARGET_LINK_LIBRARIES(gtxtools gtx)
+TARGET_LINK_LIBRARIES(splitprocess gtx)
 
 target_include_directories (splitutils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (gtx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -50,6 +49,7 @@ target_include_directories (gtx PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories (gtxtools PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS gtxtools DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
+install(TARGETS splitprocess DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 install(TARGETS splitutils gtx DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 install(FILES ${gtxlib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/gtxloader)
 install(FILES ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/utils)

@@ -440,8 +440,6 @@ std::vector<GffEntry*>* GffEntry::getAllChildren(std::string* pFeature) {
         }
     }
 
-    //pFoundChildren = this->fillEmptyRegion(this, pExons, std::string("intron"));
-
     return pFoundChildren;
 
 }
@@ -522,12 +520,13 @@ uint32_t GffEntry::getStatistics(GffLoader::sStatisticElement* pElement, GffLoad
 
 }
 
-void GffEntry::flatten(std::string* pFlattenLevel) {
+void GffEntry::flatten(std::string* pFlattenLevel, std::string* pChildLevel) {
 
+    // this is not targetted level -> go down
     if (m_pFeature->compare(pFlattenLevel->c_str()) != 0) {
         for (uint32_t i = 0; i < m_pChildren->size(); ++i) {
             GffEntry* pElem = m_pChildren->at(i);
-            pElem->flatten(pFlattenLevel);
+            pElem->flatten(pFlattenLevel, pChildLevel);
         }
 
         return;
@@ -539,13 +538,11 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
     vExonBounds.push_back(this->getStart());
     vExonBounds.push_back(this->getEnd() + 1);
 
-    std::string* pExonString = new std::string("exon");
-    std::vector<GffEntry*>* pAllExons = this->getAllChildren( pExonString );
+    std::vector<GffEntry*>* pAllExons = this->getAllChildren( pChildLevel );
 
     for (uint32_t i = 0; i < pAllExons->size(); ++i) {
 
         GffEntry* pExon = pAllExons->at(i);
-
         vExonBounds.push_back(pExon->getStart());
         vExonBounds.push_back(pExon->getEnd() + 1);
     }
@@ -564,8 +561,6 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
 
         GffEntry* pRegion = new GffEntry(*(this->m_pSeqName), *(this->m_pSource), "region", vExonBounds.at(i), vExonBounds.at(i + 1) - 1);
         pRegions->push_back(pRegion);
-        //std::cout << pRegion->toString() << std::endl;
-
     }
 
     // last region
@@ -575,6 +570,8 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
     /*
      *
      * REGIONS completed
+     *
+     * Start creating regions. A GffTranscript may contain several GffEntries of ChildLevel
      *
      */
 
@@ -587,30 +584,24 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
     for (oIt = m_pChildren->begin(); oIt != m_pChildren->end(); ++oIt) {
 
         GffEntry* pEntryTranscript = *oIt;
-        std::string* pTID = pEntryTranscript->getAttribute("transcript_id");
+        std::string* pTID = pEntryTranscript->getID();
 
         if (pTID == NULL)
-        {
-            
-            pTID = pEntryTranscript->getAttribute("ID");
-            
-            
-            if (pTID == NULL)
-                continue;
-        }
-            
+            pTID = pFlattenLevel;
 
         GffTranscript* pTranscript = new GffTranscript(*pTID, pEntryTranscript->getStart(), pEntryTranscript->getEnd());
 
         std::vector<GffEntry*>::iterator oJt;
-        for (oJt = pEntryTranscript->getChildren()->begin(); oJt != pEntryTranscript->getChildren()->end(); ++oJt) {
+        std::vector<GffEntry*>* pEntryChildren = pEntryTranscript->getAllChildren(pChildLevel);
+
+        for (oJt = pEntryChildren->begin(); oJt != pEntryChildren->end(); ++oJt) {
 
 
             GffEntry* pExon = *oJt;
 
             std::vector<GffEntry*>* pExons = this->find(pRegions, pExon->getStart(), pExon->getEnd());
 
-            for (uint32_t i = 0; i < pExons->size(); ++i) {
+            for (i = 0; i < pExons->size(); ++i) {
                 GffEntry* pElem = pExons->at(i);
                 pElem->setInTranscriptContained(true);
             }
@@ -622,10 +613,6 @@ void GffEntry::flatten(std::string* pFlattenLevel) {
         pTranscripts->push_back(pTranscript);
 
 
-    }
-
-    if ((pRegions->size() == 0) || (pTranscripts->size() == 0)) {
-        std::cout << "problem " << pRegions->size() << " " << pTranscripts->size() << std::endl;
     }
 
     m_pRegions = pRegions;

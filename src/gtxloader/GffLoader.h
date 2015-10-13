@@ -80,21 +80,7 @@ void run();
         }
     };
 
-    std::vector<GffEntry *> *addGenesInParallel(std::vector<GffEntry *> *pGenes);
-    
-    void printStatisticResult(std::string sPrefix, sStatisticElement* pElement, sStatisticResult* pResult)
-    {
-        char cDel = '\t';
-
-        pResult->prepareResults();
-        
-        if (sPrefix.size() > 0 )
-            std::cout << sPrefix << cDel;
-        
-        std::cout << pElement->sParent << cDel << pElement->sBase << cDel << (char)(48+pElement->iModifier) << cDel << pResult->iParentCount << cDel << pResult->iBaseCount << cDel << pResult->fAvgCount << cDel << pResult->iLengthBase << cDel << pResult->fAvgLength << std::endl;
-    }
-
-    std::vector<GffEntry*>* getEntriesForSeqName(std::string* pSeqName);
+    void printStatisticResult(std::string sPrefix, sStatisticElement* pElement, sStatisticResult* pResult);
 
     GffEntry* getChromosome(std::string* pSeqName);
     std::vector<std::string>* getSeqNames();
@@ -109,7 +95,7 @@ protected:
 
     void loadLines(std::vector<std::string>* pLines);
 
-    std::vector<GffLoader::sStatisticElement *> *parseStatFile();
+    static std::vector<GffLoader::sStatisticElement *> *parseStatFile(std::string* pStatFileLocation);
 
     std::map<std::string, std::vector<GffEntry*>* >* pSortedGffEntries = NULL;
     std::vector<GffEntry*>* m_pChromosomes;
@@ -128,7 +114,6 @@ private:
     std::string* m_pPrefix;
 
     std::vector<GffEntry*>* createEntriesForSeqName(std::string* pSeqName);
-    std::vector<GffEntry*>* createIntrons(std::vector<GffEntry*>* pTranscriptElements);
 
     /*
     struct {
