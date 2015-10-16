@@ -26,3 +26,8 @@ There are 3 different modes:
 0. calculates statistics on any gene child feature of chromosome
 1. calculates statistics on any non-gene child interval of chromosome
 2. as 1. but does not include first/last interval
+
+Output is in general tab separated.
+
+13	chromosome	gene	0	1	1381	1381	45050638	32621.8
+Parent Feature Name	Parent Feature	Child Feature	Mode	Parent Feature Count	Child Feature Count	Avg Child features per Parent	Length of all Child features	Avg Length of all Child features
