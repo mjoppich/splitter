@@ -142,9 +142,6 @@ int main(int argc, char** argv) {
 
 		sSplitInfoFile = "/usr/local/storage2/snyder/DNA_damage/100812_SPADE_FC62757_L3_pf/tophat.splitinfo2";
 		sSplitInfoOutFile = "/usr/local/storage2/snyder/DNA_damage/100812_SPADE_FC62757_L3_pf/tophat.genesplit";
-
-		//sGFFFile = "/usr/local/storage/references/Homo_sapiens.GRCh38.81.gtf";
-		//sGFFFile = "/usr/local/storage/references/smalltest.gtf";
 	}
 
 	GffLoader* pLoader = NULL;//new GffLoader(sGFFFile, NULL);//new GffLoader(sGFFFile, pIgnores);

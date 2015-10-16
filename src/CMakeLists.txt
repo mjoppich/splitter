@@ -5,12 +5,6 @@ cmake_minimum_required (VERSION 2.8.11)
 project (splittools)
 set(CMAKE_CXX_STANDARD 11)
 
-#set(CMAKE_CXX_COMPILER "/usr/bin/g++-4.7")
-#set(CMAKE_C_COMPILER "/usr/bin/gcc-4.7")
-
-#link_directories(~/cpp/htslib/)
-#include_directories(~/cpp/htslib/)
-
 find_package(OpenMP)
 if (OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -54,9 +48,9 @@ install(TARGETS splitutils gtx DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 install(FILES ${gtxlib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/gtxloader)
 install(FILES ${splitutilslib_H} DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../include/utils)
 
+SET(HTSLIBDIR ${CMAKE_CURRENT_SOURCE_DIR}/../../htslib)
 
-
-IF("${CMAKE_SYSTEM}" MATCHES "Linux")
+IF(EXISTS ${HTSLIBDIR})
 
     link_directories(~/cpp/htslib/)
     include_directories(~/cpp/htslib/)
