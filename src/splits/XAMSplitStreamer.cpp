@@ -148,14 +148,14 @@ SplitEvent* XAMSplitStreamer::evaluateAlignment(bam_hdr_t* pHeader, uint32_t iSe
 	std::string sStopDepth = "gene";
 
 	// is this read fully contained in some gene?
-	std::vector<GffEntry*>* pTouchedGenes = pChromosome->findLevels(&vPositions, &sStopDepth);
+	std::vector<GffEntry*>* pTouchedGenes = pChromosome->findChildrenAt(&vPositions, &sStopDepth);
 
 	// if no -> intragenic
 	if ((pTouchedGenes == NULL) || (pTouchedGenes->size() == 0))
 	{
 		// TODO something if intergenic
 
-		pTouchedGenes = pChromosome->findLevels(&vPositions, &sStopDepth, true);
+		pTouchedGenes = pChromosome->findChildrenAt(&vPositions, &sStopDepth, true);
 
 		SplitEvent* pReturn = NULL;
 

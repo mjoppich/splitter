@@ -994,8 +994,14 @@ std::vector<GffEntry *> *GffEntry::find(std::vector<GffEntry *> *pElements, uint
 
 }
 
-std::vector<GffEntry *> *GffEntry::findLevels(std::vector<uint32_t> *pPositions, std::string *pLevel,
-                                              bool bPartialContainment) {
+/**
+ * \brief find children at level which contain positions (partially)
+ * \param pPositions positions to be contained
+ * \param pLevel level to look at
+ * \param bPartialContainment false if all positions must be covered by child
+ *
+ */
+std::vector<GffEntry *> *GffEntry::findChildrenAt(std::vector<uint32_t> *pPositions, std::string *pLevel, bool bPartialContainment) {
 
     std::vector<GffEntry *> *pLevelContained = new std::vector<GffEntry *>();
 
@@ -1005,7 +1011,7 @@ std::vector<GffEntry *> *GffEntry::findLevels(std::vector<uint32_t> *pPositions,
 
             GffEntry *pChild = m_pChildren->at(i);
 
-            std::vector<GffEntry *> *pChildResults = pChild->findLevels(pPositions, pLevel, bPartialContainment);
+            std::vector<GffEntry *> *pChildResults = pChild->findChildrenAt(pPositions, pLevel, bPartialContainment);
 
             if (pChildResults != NULL) {
                 pLevelContained->insert(pLevelContained->end(), pChildResults->begin(), pChildResults->end());
@@ -1017,6 +1023,8 @@ std::vector<GffEntry *> *GffEntry::findLevels(std::vector<uint32_t> *pPositions,
         return pLevelContained;
 
     } else {
+
+        // at target level
 
         bool bPartiallyContained = false;
         bool bFullyContained = true;

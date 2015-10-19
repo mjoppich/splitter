@@ -162,8 +162,8 @@ public:
 
     std::vector<GffTranscript*>* hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment);
 
-    std::vector<GffEntry *> *findLevels(std::vector<uint32_t> *pPositions, std::string *pLevel,
-                                        bool bPartialContainment = false);
+    std::vector<GffEntry *> *findChildrenAt(std::vector<uint32_t> *pPositions, std::string *pLevel,
+                                            bool bPartialContainment = false);
 
     std::vector<GffEntry *> *find(std::vector<GffEntry *> *pElements, uint32_t iStart, uint32_t iEnd);
 
