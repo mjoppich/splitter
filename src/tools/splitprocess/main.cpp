@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     CLParser* pConfig = new CLParser(argc, argv);
 
     GffLoader *pLoader = new GffLoader(pConfig);
+    pLoader->run();
 
     std::string* pInputFile = pConfig->getArgument("splits");
     std::string* pOutputFile = pConfig->getArgument("out");

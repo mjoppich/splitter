@@ -453,9 +453,8 @@ GffLoader::~GffLoader() {
             std::vector<GffEntry*>* pGffEntries = oIt->second;
 
             for (size_t i = 0; i < pGffEntries->size(); ++i) {
-                delete pGffEntries->at(i);
+                delete (pGffEntries->at(i));
             }
-
 
             delete pGffEntries;
 

@@ -141,6 +141,19 @@ public:
         return iStrandInfo;
     }
 
+    bool is5pLocated(uint32_t iPosition)
+    {
+
+        if (this->m_iForwardStrand == 1)
+            return (iPosition < m_iStart);
+
+        if (this->m_iForwardStrand == 0)
+            return (iPosition > m_iEnd);
+
+        return false;
+
+    }
+
     // flattens entry at when feature == flattenlevel for childlevel
     void flatten(std::string* pFlattenLevel, std::string* pChildLevel);
 
@@ -162,10 +175,19 @@ public:
 
     std::vector<GffTranscript*>* hasTranscript(std::vector<uint32_t>* pPositions, bool bHasPartialContainment);
 
-    std::vector<GffEntry *> *findChildrenAt(std::vector<uint32_t> *pPositions, std::string *pLevel,
-                                            bool bPartialContainment = false);
+    std::vector<GffEntry *> *findChildrenAt(std::vector<uint32_t> *pPositions, std::string *pLevel, bool bPartialContainment = false);
+
+    std::vector<GffEntry *> *findChildrenAt(std::string sLevel, uint32_t iPosition);
+
+    std::vector<GffEntry *> * findChildrenAt(std::string* pLevel, uint32_t iPosition);
+    std::vector<GffEntry *> * findChildrenAt(GenomicRegion* pRegion, std::string *pLevel, bool bPartialContainment);
+    std::vector<GffEntry *> * findChildrenAt(GenomicRegion* pRegion, std::string sLevel, bool bPartialContainment);
+
 
     std::vector<GffEntry *> *find(std::vector<GffEntry *> *pElements, uint32_t iStart, uint32_t iEnd);
+
+    std::vector<GffTranscript*>* findTranscript(std::vector<uint32_t>* pPositions);
+    std::vector<GffTranscript*>* findTranscript(GenomicRegion* pRegion);
 
     GffEntry* getRegion(uint32_t iStart, uint32_t iEnd) {
         return new GffEntry(*this->getSeqName(), *this->getSource(), "region", iStart, iEnd);

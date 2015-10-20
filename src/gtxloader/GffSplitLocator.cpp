@@ -22,8 +22,9 @@ void GffSplitLocator::process(std::string& sLine, void* pData) {
     if (m_iLines++ == 0)
         return;
 
-    this->split(sLine, '\t', m_pLineElements);
+    m_pLineElements->clear();
 
+    this->split(sLine, '\t', m_pLineElements);
     // chrom = 0, strand = 1, start = 2, end = 3
 
     uint32_t iStart = std::stoi( m_pLineElements->at(1) );
@@ -31,119 +32,215 @@ void GffSplitLocator::process(std::string& sLine, void* pData) {
 
     GffEntry* pChrom = m_pGffLoader->getChromosome( &(m_pLineElements->at(0)) );
 
-    std::vector<uint32_t> vPos;
-    vPos.push_back(iStart);
-    vPos.push_back(iEnd);
 
-    std::vector<GffEntry*>* pGenes = pChrom->findChildrenAt(&vPos, m_pSearchLevel, true);
+    GenomicRegion* pSplit = new GenomicRegion(iStart, iEnd);
 
-    uint32_t iCoveredTranscripts = 0;
-    uint32_t iTranscripts = 0;
+    std::vector<GffEntry*>* pGenes = pChrom->findChildrenAt(pSplit, m_pSearchLevel, false);
+    sSplitResults* pResult = NULL;
+    std::stringstream oOutLine;
 
-    std::vector<GffEntry*>::iterator oIt;
-    std::vector<GffTranscript*>* pAllTranscripts = new std::vector<GffTranscript*>();
-    std::vector<GffTranscript*>* pSplicedTranscripts = new std::vector<GffTranscript*>();
-
-    for (oIt = pGenes->begin(); oIt != pGenes->end(); ++oIt)
+    if (pGenes->size() == 1)
     {
 
-        GffEntry* pGene = *oIt;
+        /**
+         * A single gene explains this split
+         */
 
-        // Are start and end of split in gene?
-        bool bSplitCovered = pGene->contains(iStart) && pGene->contains(iEnd);
+        pResult = this->queryGeneSame(pGenes->at(0), pSplit);
 
-        pGene->findChildrenAt()
+    }
 
-        // are start and end covered in at least one transcript
-        bool bCoveredTranscript = (pGene->hasTranscript(&vPos, false)->size() > 0);
+    if (pGenes->size() > 1)
+    {
 
-        if (bCoveredTranscript)
-            ++iCoveredTranscripts;
-
-        std::vector<GffTranscript*>* pTranscripts = pGene->hasTranscript(&vPos, true);
-
-        if ( pTranscripts->size() > 0)
+        for (uint32_t i = 0; i < pGenes->size(); ++i)
         {
-            ++iTranscripts;
 
-            pAllTranscripts->insert(pAllTranscripts->end(), pTranscripts->begin(), pTranscripts->end());
+            GffEntry* pGene = pGenes->at(i);
+            sSplitResults* pGeneResult = this->queryGeneSame(pGene, pSplit);
 
-            std::vector<GffTranscript*>::iterator oTr = pTranscripts->begin();
-            bool bSplitFound = false;
-            for (oTr; oTr != pTranscripts->end(); ++oTr)
-            {
+            if (pResult == NULL) {
+                pResult = pGeneResult;
+            } else {
 
-                GffTranscript* pTrans = *oTr;
-
-                bSplitFound |= pTrans->hasSplit(iStart, iEnd, 1);
-
-                if (bSplitFound)
+                if ((pResult->bSameGene == false) && (pGeneResult->bSameGene == true))
                 {
-                    pSplicedTranscripts->push_back(pTrans);
+                    pResult = pGeneResult;
+                    continue;
+                }
+
+                if ((pResult->bExonsOfGene == false) && (pGeneResult->bExonsOfGene == true))
+                {
+                    pResult = pGeneResult;
+                    continue;
+                }
+
+                if ((pResult->bSameTranscriptInOneGene == false) && (pGeneResult->bSameTranscriptInOneGene == true))
+                {
+                    pResult = pGeneResult;
+                    continue;
                 }
 
             }
+
+
         }
+
+
     }
 
-    std::stringstream oOutLine; // get rid of endline
-    oOutLine << sLine.substr(0, sLine.length()-1) << '\t' << pGenes->size() << '\t' << iCoveredTranscripts << '\t' << iTranscripts << '\t' << pSplicedTranscripts->size() << '\t';
-
-    for (uint32_t i = 0; i < pGenes->size(); ++i)
+    if (pResult != NULL)
     {
 
-        if (i > 0)
-            oOutLine << ",";
-        oOutLine << *(pGenes->at(i)->getAttribute("gene_id"));
+        oOutLine << sLine.substr(0, sLine.length()-1) << pResult->toString('\t') << std::endl;
+        std::string sFullLine = oOutLine.str();
+        m_pFileWriter->writeDirect( sFullLine );
+
+        return;
 
     }
 
-    if (pGenes->size() == 0)
-        oOutLine << "";
+    pGenes = pChrom->findChildrenAt(pSplit, m_pSearchLevel, true);
+    std::vector<GffEntry*>* pRegions = NULL;
+    GffEntry* pRegion = NULL;
 
-    oOutLine << '\t';
 
-    for (uint32_t i = 0; i < pAllTranscripts->size(); ++i)
+    if (pGenes->size() == 1)
     {
 
-        if (i > 0)
-            oOutLine << ",";
+        /**
+         * A single gene explains this split
+         */
+        GffEntry* pGene = pGenes->at(0);
 
-        GffTranscript* pTrans = pAllTranscripts->at(i);
+        if (pGene->contains( pSplit->getStart() ))
+            pRegions = pChrom->findChildrenAt(NULL, pSplit->getEnd());
+        else
+            pRegions = pChrom->findChildrenAt(NULL, pSplit->getStart());
 
-        oOutLine << "["<< pTrans->getStart() << "," << pTrans->getEnd() << "]";
+        if (pRegions->size() > 0)
+            pRegion = pRegions->at(0);
+
+        pResult = this->queryGeneDifferent(pGene, pRegion, pSplit);
 
     }
 
-    if (pAllTranscripts->size() == 0)
-        oOutLine << "";
-
-    oOutLine << '\t';
-
-    for (uint32_t i = 0; i < pSplicedTranscripts->size(); ++i)
+    if (pGenes->size() > 1)
     {
 
-        if (i > 0)
-            oOutLine << ",";
+        for (uint32_t i = 0; i < pGenes->size(); ++i)
+        {
 
-        GffTranscript* pTrans = pSplicedTranscripts->at(i);
+            GffEntry* pGene = pGenes->at(i);
 
-        oOutLine << *pTrans->getTranscriptID();
+            if (pGene->contains( pSplit->getStart() ))
+                pRegions = pChrom->findChildrenAt(NULL, pSplit->getEnd());
+            else
+                pRegions = pChrom->findChildrenAt(NULL, pSplit->getStart());
+
+            if (pRegions->size() > 0)
+                pRegion = pRegions->at(0);
+
+            sSplitResults* pGeneResult = this->queryGeneDifferent(pGene, pRegion, pSplit);
+
+            if (pResult == NULL) {
+                pResult = pGeneResult;
+            } else {
+
+                if ((pResult->bSameGene == false) && (pGeneResult->bSameGene == true))
+                {
+                    pResult = pGeneResult;
+                    continue;
+                }
+
+                if ((pResult->bExonsOfGene == false) && (pGeneResult->bExonsOfGene == true))
+                {
+                    pResult = pGeneResult;
+                    continue;
+                }
+
+                if ((pResult->bSameTranscriptInOneGene == false) && (pGeneResult->bSameTranscriptInOneGene == true))
+                {
+                    pResult = pGeneResult;
+                    continue;
+                }
+            }
+
+
+        }
+
 
     }
 
-    if (pSplicedTranscripts->size() == 0)
-        oOutLine << "";
+    if (pResult != NULL)
+    {
 
-    oOutLine << std::endl;
+        oOutLine << sLine.substr(0, sLine.length()-1) << pResult->toString('\t') << std::endl;
+        std::string sFullLine = oOutLine.str();
+        m_pFileWriter->writeDirect( sFullLine );
 
-    std::string sOutLine = oOutLine.str();
+        return;
 
-    m_pFileWriter->writeDirect( sOutLine );
-
-    delete pGenes;
-    delete pAllTranscripts;
-    delete pSplicedTranscripts;
+    }
 
     m_pLineElements->clear();
+}
+
+GffSplitLocator::sSplitResults *GffSplitLocator::queryGeneSame(GffEntry* pGene, GenomicRegion* pSplit) {
+    GffSplitLocator::sSplitResults* pResult = new GffSplitLocator::sSplitResults();
+
+    pResult->pMatchingGene = pGene;
+    pResult->bSameGene = true;
+
+    if (pGene->contains( pSplit->getStart() ))
+        pResult->b5pOfGene = pGene->is5pLocated( pSplit->getEnd() );
+    else
+        pResult->b5pOfGene = pGene->is5pLocated( pSplit->getStart() );
+
+    std::vector<GffEntry*>* pExonsStart = pGene->findChildrenAt( "exon", pSplit->getStart());
+    std::vector<GffEntry*>* pExonsEnd = pGene->findChildrenAt( "exon", pSplit->getEnd());
+
+    if ((pExonsStart->size() > 0) && (pExonsEnd->size() > 0))
+        pResult->bExonsOfGene = true;
+    else
+        pResult->bExonsOfGene = false;
+
+    delete pExonsStart;
+    delete pExonsEnd;
+
+    std::vector<GffTranscript*>* pTranscripts = pGene->findTranscript( pSplit );
+    pResult->bSameTranscriptInOneGene = (pTranscripts->size() > 0);
+    delete pTranscripts;
+
+    return pResult;
+}
+
+GffSplitLocator::sSplitResults *GffSplitLocator::queryGeneDifferent(GffEntry* pGene, GffEntry* pRegion, GenomicRegion* pSplit) {
+    GffSplitLocator::sSplitResults* pResult = new GffSplitLocator::sSplitResults();
+
+    pResult->pMatchingGene = pGene;
+    pResult->bSameGene = false;
+    pResult->pNonmatchingPart = pRegion;
+
+    if (pGene->contains( pSplit->getStart() ))
+        pResult->b5pOfGene = pGene->is5pLocated( pSplit->getEnd() );
+    else
+        pResult->b5pOfGene = pGene->is5pLocated( pSplit->getStart() );
+
+    std::vector<GffEntry*>* pExonsStart = pGene->findChildrenAt( "exon", pSplit->getStart());
+    std::vector<GffEntry*>* pExonsEnd = pGene->findChildrenAt( "exon", pSplit->getEnd());
+
+    if ((pExonsStart->size() > 0) && (pExonsEnd->size() > 0))
+        pResult->bExonsOfGene = true;
+    else
+        pResult->bExonsOfGene = false;
+
+    delete pExonsStart;
+    delete pExonsEnd;
+
+    std::vector<GffTranscript*>* pTranscripts = pGene->findTranscript( pSplit );
+    pResult->bSameTranscriptInOneGene = (pTranscripts->size() > 0);
+    delete pTranscripts;
+
+    return pResult;
 }

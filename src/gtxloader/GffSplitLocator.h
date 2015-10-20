@@ -51,6 +51,57 @@ public:
 
 private:
 
+    struct sSplitResults {
+
+        sSplitResults()
+        {
+            bSameGene = false;
+            bExonsOfGene = false;
+            bSameTranscriptInOneGene = false;
+            b5pOfGene = false;
+
+            pMatchingGene = NULL;
+            pNonmatchingPart = NULL;
+            pMatchingTranscript = NULL;
+        }
+
+        std::string toString(char cDel = '\t')
+        {
+            std::stringstream oOutLine;
+
+            oOutLine << bSameGene << cDel;
+            oOutLine << bExonsOfGene << cDel;
+            oOutLine << bSameTranscriptInOneGene << cDel;
+            oOutLine << b5pOfGene << cDel;
+
+            if ((pMatchingGene != NULL))
+            {
+                oOutLine << *pMatchingGene->getID() << cDel;
+            } else {
+                oOutLine << "null" << cDel;
+            }
+
+            oOutLine << ((pNonmatchingPart != NULL) ? *pNonmatchingPart->getID() : "null") << cDel;
+            oOutLine << ((pMatchingTranscript != NULL) ? *pMatchingTranscript->getTranscriptID() : "null") << cDel;
+
+            return oOutLine.str();
+        }
+
+        bool bSameGene;
+        bool bExonsOfGene;
+        bool bSameTranscriptInOneGene;
+        bool b5pOfGene;
+
+        GffEntry* pMatchingGene;
+        GffEntry* pNonmatchingPart;
+        GffTranscript* pMatchingTranscript;
+
+    };
+
+    sSplitResults * queryGeneSame(GffEntry* pGene, GenomicRegion* pSplit);
+
+    sSplitResults * queryGeneDifferent(GffEntry* pGene, GffEntry* pRegion, GenomicRegion* pSplit);
+
     void process(std::string& sLine, void* pData);
 
     std::vector<std::string>* m_pLineElements;

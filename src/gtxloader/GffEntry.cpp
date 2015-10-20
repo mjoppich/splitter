@@ -994,6 +994,21 @@ std::vector<GffEntry *> *GffEntry::find(std::vector<GffEntry *> *pElements, uint
 
 }
 
+std::vector<GffEntry *> *GffEntry::findChildrenAt(std::string sLevel, uint32_t iPosition) {
+
+    std::vector<GffEntry *>* pResult = this->findChildrenAt(&sLevel, iPosition);
+
+    return pResult;
+}
+
+std::vector<GffEntry *> *GffEntry::findChildrenAt(std::string* pLevel, uint32_t iPosition) {
+
+    std::vector<uint32_t> vPositions;
+    vPositions.push_back(iPosition);
+
+    return findChildrenAt(&vPositions, pLevel, false);
+}
+
 /**
  * \brief find children at level which contain positions (partially)
  * \param pPositions positions to be contained
@@ -1005,13 +1020,15 @@ std::vector<GffEntry *> *GffEntry::findChildrenAt(std::vector<uint32_t> *pPositi
 
     std::vector<GffEntry *> *pLevelContained = new std::vector<GffEntry *>();
 
-    if (this->m_pFeature->compare(*pLevel) != 0) {
+    if ((pLevel == NULL) || (this->m_pFeature->compare(*pLevel) != 0)) {
 
         for (uint32_t i = 0; i < m_pChildren->size(); ++i) {
 
             GffEntry *pChild = m_pChildren->at(i);
 
-            std::vector<GffEntry *> *pChildResults = pChild->findChildrenAt(pPositions, pLevel, bPartialContainment);
+            std::string* pAtLevel = (pLevel == NULL) ? pChild->getFeature() : pLevel;
+
+            std::vector<GffEntry *> *pChildResults = pChild->findChildrenAt(pPositions, pAtLevel, bPartialContainment);
 
             if (pChildResults != NULL) {
                 pLevelContained->insert(pLevelContained->end(), pChildResults->begin(), pChildResults->end());
@@ -1049,6 +1066,22 @@ std::vector<GffEntry *> *GffEntry::findChildrenAt(std::vector<uint32_t> *pPositi
     }
 
     return pLevelContained;
+
+}
+
+std::vector<GffEntry *> *GffEntry::findChildrenAt(GenomicRegion* pRegion, std::string sLevel, bool bPartialContainment) {
+
+    return this->findChildrenAt(pRegion, &sLevel, bPartialContainment);
+
+}
+
+std::vector<GffEntry *> *GffEntry::findChildrenAt(GenomicRegion* pRegion, std::string *pLevel, bool bPartialContainment) {
+
+    std::vector<uint32_t> vPositions;
+    vPositions.push_back( pRegion->getStart() );
+    vPositions.push_back( pRegion->getEnd() );
+
+    return this->findChildrenAt(&vPositions, pLevel, bPartialContainment);
 
 }
 
@@ -1261,3 +1294,41 @@ void GffEntry::printHierarchy(uint32_t iLevel, uint32_t iMaxLevel) {
 
 
 }
+
+std::vector<GffTranscript*>* GffEntry::findTranscript(GenomicRegion* pRegion) {
+
+    std::vector<uint32_t> vPos;
+    vPos.push_back(pRegion->getStart());
+    vPos.push_back(pRegion->getEnd());
+
+    std::vector<GffTranscript*>* pReturn = this->findTranscript(&vPos);
+
+    return pReturn;
+}
+
+std::vector<GffTranscript*>* GffEntry::findTranscript(std::vector<uint32_t>* pPositions) {
+
+    std::vector<GffTranscript*>* pTranscripts = new std::vector<GffTranscript*>();
+
+    for (uint32_t i = 0; i < m_pTranscripts->size(); ++i)
+    {
+
+        GffTranscript* pTranscript = m_pTranscripts->at(i);
+        bool bContainsAll = true;
+
+        for (uint32_t j = 0; j < pPositions->size(); ++j)
+        {
+            uint32_t iPosition = pPositions->at(j);
+            bContainsAll &= pTranscript->contains( iPosition );
+
+        }
+
+        if (bContainsAll)
+            pTranscripts->push_back(pTranscript);
+
+    }
+
+    return pTranscripts;
+
+}
+

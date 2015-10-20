@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 
 		std::cout << *(pChromosome->getFeature()) << " " << *pFlattenLevel << " " << pChromosome->getChildren()->size() << pChromosome->getLength() << std::endl;
 
-		pChromosome->flatten( pFlattenLevel );
+		pChromosome->flatten( pFlattenLevel, NULL );
 
 		pStreamer->process(iBAMHeaderIndex, pChromosome);
 
